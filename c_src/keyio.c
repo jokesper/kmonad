@@ -36,7 +36,7 @@ int acquire_uinput_keysink(int fd, char *name, int vendor, int product, int vers
   // 1. retrieve available leds from source
   u_int8_t supported_leds[LED_MAX / 8 + 1] = {0};
   if (source_fd >= 0)
-    ioctl(source_fd, EVIOCGBIT(EV_LED, LED_MAX), supported_leds);
+    ioctl(source_fd, EVIOCGBIT(EV_LED, LED_MAX / 8 + 1), supported_leds);
   else
     supported_leds[0] = 0b11110000;  // first 4 leds
 
