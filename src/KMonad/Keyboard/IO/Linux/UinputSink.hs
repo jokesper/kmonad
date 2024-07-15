@@ -144,7 +144,7 @@ usOpen :: HasLogFunc e => UinputCfg -> RIO e UinputSink
 usOpen c = do
   when (null $ c ^. keyboardName) $ throwM EmptyNameError
   fd <- liftIO $ openFd "/dev/uinput"
-    WriteOnly
+    ReadWrite
 #if !MIN_VERSION_unix(2,8,0)
     Nothing
 #endif

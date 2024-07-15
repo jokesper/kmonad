@@ -133,7 +133,7 @@ lsOpen :: (HasLogFunc e)
   -> RIO e DeviceFile
 lsOpen pr pt = do
   h  <- liftIO $ openFd pt
-    ReadOnly
+    ReadWrite
 #if !MIN_VERSION_unix(2,8,0)
     Nothing
 #endif
