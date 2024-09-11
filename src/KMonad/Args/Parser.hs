@@ -290,6 +290,7 @@ keywordButtons =
   , ("layer-rem"      , KLayerRem    <$> lexeme word)
   , ("layer-delay"    , KLayerDelay  <$> lexeme numP <*> lexeme word)
   , ("layer-next"     , KLayerNext   <$> lexeme word)
+  , ("hold-button"    , pure KHoldButton)
   , ("around-next"    , KAroundNext  <$> buttonP)
   , ("around-next-single", KAroundNextSingle <$> buttonP)
   , ("before-after-next", KBeforeAfterNext <$> buttonP <*> buttonP)

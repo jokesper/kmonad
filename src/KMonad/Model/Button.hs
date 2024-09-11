@@ -59,6 +59,7 @@ module KMonad.Model.Button
   , tapMacroRelease
   , steppedButton
   , stickyKey
+  , holdButton
   )
 where
 
@@ -596,3 +597,6 @@ steppedButton bs = onPress $ go bs
     go (b:bs') = do
       press b
       awaitMy Press $ go bs' $> Catch
+
+holdButton :: Button
+holdButton = mkButton (hold True) (hold False)
