@@ -36,8 +36,6 @@ library
       src
   ghc-options:
     -Wall
-    -Wno-name-shadowing
-    -Wno-unused-imports
   build-depends:
       base >= 4.12 && < 5
     , cereal
