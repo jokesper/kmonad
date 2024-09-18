@@ -8,7 +8,6 @@ import KMonad.Parsing
 
 import Control.Monad.Except
 import Control.Monad.State
-import Data.Char
 
 import RIO.List.Partial (head)
 
