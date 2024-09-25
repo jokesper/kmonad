@@ -48,7 +48,7 @@ sendEventKeySink di = mkKeySink (skOpen (fromMaybe (300, 100) di)) skClose skSen
 skOpen :: HasLogFunc e => (Int, Int) -> RIO e SKSink
 skOpen (d, i) = do
   logInfo "Initializing Windows key sink"
-  bv <- liftIO $ mallocBytes (sizeOf (undefined :: WinKeyEvent))
+  bv <- liftIO malloc
   bm <- newMVar bv
   r <- newMVar Nothing
   pure $ SKSink bm r d i

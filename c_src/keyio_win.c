@@ -56,17 +56,11 @@ LRESULT CALLBACK keyHandler(int nCode, WPARAM wParam, LPARAM lParam)
   ACTION type;
   switch (wParam) {
       case WM_KEYDOWN:
-        type = KEY_PRESS;
-        break;
-
       case WM_SYSKEYDOWN:
         type = KEY_PRESS;
         break;
 
       case WM_KEYUP:
-        type = KEY_RELEASE;
-        break;
-
       case WM_SYSKEYUP:
         type = KEY_RELEASE;
         break;
@@ -88,7 +82,6 @@ void wait_key(struct KeyEvent* e)
   DWORD dwRead;
   ReadFile(readPipe, e, sizeof(e), &dwRead, NULL);
   //printf("receiving: %d\n", e->keycode);
-  return;
 }
 
 // Insert the keyboard hook and start the monitoring process
@@ -109,11 +102,10 @@ int grab_kb()
 }
 
 // Uninstall the keyboard hook and kill the process
-int release_kb()
+void release_kb()
 {
   UnhookWindowsHookEx(hookHandle);
   PostQuitMessage(0);
-  return(0);
 }
 
 // Send key to the OS
