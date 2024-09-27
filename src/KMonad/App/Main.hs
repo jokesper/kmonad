@@ -81,8 +81,8 @@ initAppEnv cfg = do
   threadDelay $ fromIntegral (cfg^.startDelay) * 1000
 
   -- Acquire the key source and key sink
-  snk <- using $ cfg^.keySinkDev
   src <- using $ cfg^.keySourceDev
+  snk <- using $ cfg^.keySinkDev
 
   -- Initialize the pull-chain components
   dsp <- Dp.mkDispatch $ awaitKey src
