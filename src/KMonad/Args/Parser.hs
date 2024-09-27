@@ -337,7 +337,7 @@ itokenP = choice $ map (try . uncurry statement) itokens
 -- | Input tokens to parse; the format is @(keyword, how to parse the token)@
 itokens :: [(Text, Parser IToken)]
 itokens =
-  [ ("device-file"   , KDeviceSource <$> (T.unpack <$> lexeme textP))
+  [ ("device-file"   , KDeviceSource <$> some (T.unpack <$> lexeme textP))
   , ("low-level-hook", pure KLowLevelHookSource)
   , ("iokit-name"    , KIOKitSource <$> optional (lexeme textP))]
 
