@@ -62,10 +62,7 @@ where
 
 import Data.Unique
 
-import KMonad.Prelude hiding (timeout)
-
 import KMonad.Keyboard
-import KMonad.Util
 
 --------------------------------------------------------------------------------
 -- $keyfun

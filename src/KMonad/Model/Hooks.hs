@@ -23,14 +23,11 @@ module KMonad.Model.Hooks
   )
 where
 
-import KMonad.Prelude
-
 import Data.Time.Clock.System
 import Data.Unique
 
 import KMonad.Model.Action hiding (register)
 import KMonad.Keyboard
-import KMonad.Util
 
 import RIO.Partial (fromJust)
 

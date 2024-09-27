@@ -16,12 +16,9 @@ module KMonad.App.Main
   )
 where
 
-import KMonad.Prelude
-
 import KMonad.Args
 import KMonad.App.Types
 import KMonad.Keyboard
-import KMonad.Util
 import KMonad.Model
 
 
@@ -152,7 +149,7 @@ pressKey c =
           awaitMy Release $ do
             runBEnv b Release >>= \case
               Nothing -> pure ()
-              Just a  -> runAction a
+              Just a' -> runAction a'
             pure Catch
 
 --------------------------------------------------------------------------------

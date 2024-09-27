@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-|
 Module      : KMonad.Args
 Description : How to parse arguments and config files into an AppCfg
@@ -13,7 +14,6 @@ module KMonad.Args
   ( getCmd, loadConfig, Cmd, HasCmd(..))
 where
 
-import KMonad.Prelude
 import KMonad.App.Types
 import KMonad.Args.Cmd
 import KMonad.Args.Joiner

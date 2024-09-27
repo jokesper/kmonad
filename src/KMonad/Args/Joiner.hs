@@ -24,14 +24,11 @@ module KMonad.Args.Joiner
   )
 where
 
-import KMonad.Prelude hiding (uncons)
-
 import KMonad.Args.Types
 
 import KMonad.Model.Action
 import KMonad.Model.Button
 import KMonad.Keyboard
-import KMonad.Keyboard.IO
 
 #ifdef linux_HOST_OS
 import KMonad.Keyboard.IO.Linux.DeviceSource
@@ -50,7 +47,8 @@ import KMonad.Keyboard.IO.Mac.KextSink
 
 import Control.Monad.Except
 
-import RIO.List (headMaybe, intersperse, uncons, sort, group)
+import RIO.List (headMaybe, intersperse)
+import qualified RIO.NonEmpty as N
 import RIO.Partial (fromJust)
 import qualified KMonad.Util.LayerStack  as L
 import qualified RIO.HashMap      as M
@@ -86,15 +84,15 @@ instance Show JoinError where
     DuplicateAlias    t   -> "Multiple aliases of the same name: "   <> T.unpack t
     DuplicateLayer    t   -> "Multiple layers of the same name: "    <> T.unpack t
     DuplicateSource   t   -> case t of
-      Just t  -> "Multiple sources of the same name: " <> T.unpack t
+      Just t' -> "Multiple sources of the same name: " <> T.unpack t'
       Nothing -> "Multiple default sources"
     DuplicateKeyInSource   t ks   -> case t of
-      Just t  -> "Keycodes appear multiple times in source `" <> T.unpack t <> "`:" <> ((' ' :) . show =<< ks)
+      Just t' -> "Keycodes appear multiple times in source `" <> T.unpack t' <> "`:" <> ((' ' :) . show =<< ks)
       Nothing -> "Keycodes appear multiple times in default source: " <> ((' ' :) . show =<< ks)
     MissingAlias      t   -> "Reference to non-existent alias: "     <> T.unpack t
     MissingLayer      t   -> "Reference to non-existent layer: "     <> T.unpack t
     MissingSource     t   -> case t of
-      Just t  -> "Reference to non-existent source: " <> T.unpack t
+      Just t' -> "Reference to non-existent source: " <> T.unpack t'
       Nothing -> "Reference to non-existent default source"
     MissingSetting    t   -> "Missing setting in 'defcfg': "         <> T.unpack t
     DuplicateSetting  t   -> "Duplicate setting in 'defcfg': "       <> T.unpack t
@@ -415,6 +413,7 @@ joinButton ns als =
     KRetap ms t rt     -> jst $ retap (fi ms) <$> go t <*> go rt
     KStepped bs        -> jst $ steppedButton <$> mapM go bs
     KStickyKey s d     -> jst $ stickyKey (fi s) <$> go d
+    KHoldButton -> pure $ Just holdButton
 
     -- Non-action buttons
     KTrans -> pure Nothing
@@ -437,7 +436,7 @@ joinSources = foldM joiner mempty
      | otherwise            = pure $ M.insert n src sources
     where
      dups :: [Keycode]
-     dups = concatMap (take 1) . filter ((> 1) . length) . group . sort $ ks
+     dups = N.head <$> filter (not . null . N.tail) (N.groupAllWith id ks)
 
 --------------------------------------------------------------------------------
 -- $kmap

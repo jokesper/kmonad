@@ -3,15 +3,12 @@ module KMonad.Keyboard.IO.Mac.IOKitSource
   )
 where
 
-import KMonad.Prelude
-
 import Foreign.Marshal hiding (void)
 import Foreign.Ptr
 import Foreign.Storable
 import Foreign.C.String
 
 import KMonad.Keyboard
-import KMonad.Keyboard.IO
 import KMonad.Keyboard.IO.Mac.Types
 
 --------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-dodgy-imports #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module KMonad.Prelude.Imports
   ( module X )
@@ -7,7 +7,7 @@ where
 import Control.Lens       as X
 import Control.Monad.Cont as X
 import Data.Acquire       as X
-import GHC.Conc           as X (orElse)
+import RIO.Char           as X
 import RIO.Text           as X (unlines, lines, unpack, pack)
 
 import RIO as X hiding
@@ -24,4 +24,12 @@ import RIO as X hiding
 
     -- Will import these when I need it
   , some, many
+  , seq
+  , try, timeout
+
+    -- Use lenses instead
+  , reverse -- `view reversed` or `reversing`
+
+    -- Breaks Paths_kmonad
+  , catchIO
   )

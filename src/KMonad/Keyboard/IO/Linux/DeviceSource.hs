@@ -21,12 +21,10 @@ module KMonad.Keyboard.IO.Linux.DeviceSource
   )
 where
 
-import KMonad.Prelude
 import Foreign.C.Types
 import System.Posix
 
 import KMonad.Keyboard.IO.Linux.Types
-import KMonad.Util
 
 import qualified Data.Serialize as B (decode)
 import qualified RIO.ByteString as B
@@ -83,7 +81,7 @@ decode64 :: B.ByteString -> Either String LinuxKeyEvent
 decode64 bs = linuxKeyEvent . fliptup <$> result
   where
     result :: Either String (Int32, Word16, Word16, Word64, Word64)
-    result = B.decode . B.reverse $ bs
+    result = B.decode $ bs^.reversed
 
     fliptup (a, b, c, d, e) = (e, d, c, b, a)
 

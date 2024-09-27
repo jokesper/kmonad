@@ -16,11 +16,9 @@ module KMonad.Args.Cmd
   )
 where
 
-import KMonad.Prelude hiding (try)
 import KMonad.Args.Parser (itokens, keywordButtons, noKeywordButtons, otokens, symbol, numP, implArndButtons)
 import KMonad.Args.TH (gitHash)
 import KMonad.Args.Types (DefSetting(..))
-import KMonad.Util
 import Paths_kmonad (version)
 
 import qualified KMonad.Parsing as M  -- [M]egaparsec functionality

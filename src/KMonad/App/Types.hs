@@ -9,16 +9,12 @@ module KMonad.App.Types
   )
 where
 
-import KMonad.Prelude
-
 import UnliftIO.Process (CreateProcess(close_fds), createProcess_, shell)
 
 import KMonad.Keyboard
-import KMonad.Keyboard.IO
 import KMonad.Model.Action
 import KMonad.Model.Button
 import KMonad.Model.BEnv
-import KMonad.Util
 
 import qualified KMonad.Model.Dispatch as Dp
 import qualified KMonad.Model.Hooks    as Hs

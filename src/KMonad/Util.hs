@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-|
 Module      : KMonad.Util
 Description : Various bits and bobs that I don't know where to put
@@ -32,7 +33,7 @@ module KMonad.Util
 
 where
 
-import KMonad.Prelude
+import KMonad.Prelude.Imports
 
 import Data.Time.Clock
 import Data.Time.Clock.System

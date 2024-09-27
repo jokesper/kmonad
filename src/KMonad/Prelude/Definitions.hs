@@ -1,7 +1,7 @@
--- |
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module KMonad.Prelude.Definitions
-  ( )
+  ( module X )
 where
 
-import KMonad.Prelude.Imports
+import KMonad.Util as X

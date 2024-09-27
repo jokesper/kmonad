@@ -36,8 +36,6 @@ library
       src
   ghc-options:
     -Wall
-    -Wno-name-shadowing
-    -Wno-unused-imports
   build-depends:
       base >= 4.12 && < 5
     , foldable1-classes-compat
@@ -66,7 +64,6 @@ library
       MultiParamTypeClasses
       MultiWayIf
       NamedFieldPuns
-      NoImplicitPrelude
       OverloadedStrings
       RankNTypes
       TemplateHaskell
@@ -76,6 +73,8 @@ library
   autogen-modules:
       Paths_kmonad
 
+  other-modules:
+      Prelude
   exposed-modules:
       KMonad.App
       KMonad.App.Main
@@ -158,15 +157,10 @@ executable kmonad
       -threaded
       -rtsopts
       -with-rtsopts=-N
-  main-is:
-      Main.hs
-  default-language:
-      Haskell2010
-  hs-source-dirs:
-      app
-  build-depends:
-      base >= 4.12 && < 5
-    , kmonad
+  main-is: kmonad.hs
+  default-extensions: NoImplicitPrelude
+  default-language: Haskell2010
+  build-depends: kmonad
 
 test-suite spec
   main-is: Spec.hs
@@ -181,9 +175,11 @@ test-suite spec
     , hspec
     , rio
   other-modules:
+      Prelude
       KMonad.ButtonDocSpec
       KMonad.GestureSpec
       KMonad.ComposeSeqSpec
+      KMonad.NoOverlapInButtonNamingSpec
   default-language:
       Haskell2010
   build-tool-depends: hspec-discover:hspec-discover == 2.*
@@ -201,7 +197,6 @@ test-suite spec
       MultiParamTypeClasses
       MultiWayIf
       NamedFieldPuns
-      NoImplicitPrelude
       OverloadedStrings
       RankNTypes
       TemplateHaskell

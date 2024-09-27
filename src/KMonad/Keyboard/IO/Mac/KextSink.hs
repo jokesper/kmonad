@@ -3,14 +3,11 @@ module KMonad.Keyboard.IO.Mac.KextSink
   )
 where
 
-import KMonad.Prelude
-
 import Foreign.Ptr
 import Foreign.Marshal
 import Foreign.Storable
 
 import KMonad.Keyboard
-import KMonad.Keyboard.IO
 import KMonad.Keyboard.IO.Mac.Types
 
 foreign import ccall "send_key"
