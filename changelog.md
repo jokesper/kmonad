@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 ### Added
 
+- Added `retap` which presses another button if the corresponding button is
+  repressed within a certain time period (#882)
+- Added names for the keys `rfkill` and `micmute` (#883)
+
 ### Changed
 
 ### Fixed
