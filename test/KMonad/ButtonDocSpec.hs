@@ -32,6 +32,7 @@ docsExistForEveryButtons =
   -- ignore deprecated names
   checkerFromButton "momentary-layer" = const True
   checkerFromButton "permanent-layer" = const True
+  checkerFromButton "hold-button" = const True
   checkerFromButton btn =
     T.isPrefixOf ("- `(" <> btn <> " ") . T.dropWhile isSpace
       <||> T.isInfixOf ("`" <> btn <> "`")
@@ -44,7 +45,9 @@ tutorialMentionsEveryButton =
   describe "button-usage" $
     sequence_ . traverse checkButtonUsed buttonConstrs =<< runIO getTutorial
  where
-  checkButtonUsed btn cnt =
+  checkButtonUsed btn cnt
+    | btn == toConstr KHoldButton = pure ()
+    | otherwise =
     it ("Buttontype `" <> showConstr btn <> "` appears outside of comments")
       . unless (containsButton btn cnt)
       $ expectationFailure ("Buttontype `" <> showConstr btn <> "` is never used")

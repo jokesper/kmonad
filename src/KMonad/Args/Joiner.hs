@@ -414,6 +414,7 @@ joinButton ns als =
       where f (ms, b) = (fi ms,) <$> go b
     KStepped bs        -> jst $ steppedButton <$> mapM go bs
     KStickyKey s d     -> jst $ stickyKey (fi s) <$> go d
+    KHoldButton -> pure $ Just holdButton
 
     -- Non-action buttons
     KTrans -> pure Nothing
