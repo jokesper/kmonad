@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 ### Changed
 
+- Update Karabiner-DriverKit to 5.0.0 (#???)
+
 ### Fixed
 
 ## 0.4.3 – 2024-09-11
