@@ -144,6 +144,7 @@ library
         c_src/mac/dext.cpp
       cxx-options:
         -std=c++2a
+        -Ic_src/mac/Karabiner-DriverKit-VirtualHIDDevice/examples/virtual-hid-device-service-client/vendor/include/
     extra-libraries:
       c++
     build-depends:

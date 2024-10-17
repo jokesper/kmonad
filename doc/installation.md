@@ -233,7 +233,7 @@ Therefore, if you use Karabiner-Elements, you may already have the
 dext installed (though maybe a different version number). Run
 `defaults read
 /Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/Info.plist
-CFBundleVersion` to check the version: if `3.1.0` is shown, then the
+CFBundleVersion` to check the version: if `5.0.0` is shown, then the
 installed dext is compatible with kmonad and you can move onto
 [installing kmonad](#installing-kmonad). If another version is listed,
 this may work too (but has not been tested).
@@ -244,6 +244,16 @@ If you want to attempt building and signing the dext yourself, look to
 [the
 documentation](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice)
 for instructions.
+
+###### Starting the daemon
+
+Karabiner does not start the daemon automatically.
+You have to start it via
+
+```console
+  $ sudo '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon'
+
+```
 
 ##### Install the already build and signed dext package
 
@@ -256,7 +266,7 @@ install the extension, and activate the extension.
 
 ```console
   $ cd kmonad/
-  $ open c_src/mac/Karabiner-DriverKit-VirtualHIDDevice/dist/Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg
+  $ open c_src/mac/Karabiner-DriverKit-VirtualHIDDevice/dist/Karabiner-DriverKit-VirtualHIDDevice-5.0.0.pkg
 ```
 
 ```console
