@@ -58,7 +58,9 @@ module KMonad.Model.Button
   , tapMacro
   , tapMacroRelease
   , steppedButton
+  , retap
   , stickyKey
+  , holdButton
   )
 where
 
@@ -294,7 +296,7 @@ aroundNextTimeout ::
   -> Button       -- ^ The 'Button' to use to surround next
   -> Button       -- ^ The 'Button' to tap on timeout
   -> Button       -- ^ The resulting button
-aroundNextTimeout d b t = onPress $ within d (pure isPress) (tap t) $ \trig -> do
+aroundNextTimeout d b t = onPress $ within InputHook d (pure isPress) (tap t) $ \trig -> do
   runAction $ b^.pressAction
   await (isReleaseOf $ trig^.event.keycode) $ \_ -> do
     runAction $ b^.releaseAction
@@ -349,7 +351,7 @@ tapNext t h = onPress' t $ hookF InputHook $ \e -> do
 
 -- | Like 'tapNext', except that after some interval it switches anyways
 tapHoldNext :: Milliseconds -> Button -> Button -> Maybe Button -> Button
-tapHoldNext ms t h mtb = onPress $ within ms (pure $ const True) onTimeout $ \tr -> do
+tapHoldNext ms t h mtb = onPress $ within InputHook ms (pure $ const True) onTimeout $ \tr -> do
   p <- matchMy Release
   if p $ tr^.event
     then tap t   $> Catch
@@ -383,7 +385,7 @@ tapNextRelease t h = onPress' t $ do
   go []
   where
     go :: MonadK m => [Keycode] ->  m ()
-    go ks = hookF InputHook $ \e -> do
+    go ks = hookF InputHookPrio $ \e -> do
       p <- matchMy Release
       let isRel = isRelease e
       if
@@ -427,7 +429,7 @@ tapHoldNextRelease ms t h mtb = onPress' t $ do
   where
 
     go :: MonadK m => Milliseconds -> [Keycode] ->  m ()
-    go ms' ks = tHookF InputHook ms' onTimeout $ \r -> do
+    go ms' ks = tHookF InputHookPrio ms' onTimeout $ \r -> do
       p <- matchMy Release
       let e = r^.event
       let isRel = isRelease e
@@ -576,13 +578,20 @@ stickyKey ms b = onPress go
 
   doTap :: MonadK m => m ()
   doTap =
-    within ms
+    within InputHook ms
            (pure isPress)  -- presses definitely happen after us
            (pure ())
            (\t -> runAction (b^.pressAction)
                *> inject (t^.event)
                *> after 3 (runAction $ b^.releaseAction)
                $> Catch)
+
+-- | Press another button if this one is repressed within a certain time period
+retap :: Milliseconds -> Button -> Button -> Button
+retap ms t rt =
+  mkButton (runAction $ t^.pressAction) $ do
+    runAction $ t^.releaseAction
+    within ms (matchMy Press) (pure ()) . const $ press rt $> Catch
 
 -- | Create a button that functions as a different button everything it is pushed
 --
@@ -596,3 +605,6 @@ steppedButton bs = onPress $ go bs
     go (b:bs') = do
       press b
       awaitMy Press $ go bs' $> Catch
+
+holdButton :: Button
+holdButton = mkButton (hold True) (hold False)

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 - Added names for the keys `rfkill` and `micmute` (#883).
   If you previously used the buttons `missing247` and `missing248`, please update to the new names.
+- Added `retap` which presses another button if the corresponding button is
+  repressed within a certain time period (#882)
 
 ### Changed
 
@@ -20,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 - Fixed `tapMacro` and `tapMacroRelease` behaviour which was slightly broken in #873 (#906)
 - Fixed keycode translation problem on windows (#894)
+- Fixed problems with tap-next-release and similar (see #256) (#524, #914)
+- Fixed keyrepeat not working in tty on linux (#913)
 
 ## 0.4.3 – 2024-09-11
 
