@@ -41,7 +41,6 @@ module KMonad.Model.Dispatch
   )
 where
 
-import KMonad.Prelude
 import KMonad.Keyboard
 import KMonad.Model.Action (WrappedEvent(..), Catch(..))
 
@@ -122,5 +121,5 @@ pull d = do
         pure e
 
 -- | Add a list of elements to be rerun.
-rerun :: (HasLogFunc e) => Dispatch -> [WrappedEvent] -> RIO e ()
+rerun :: Dispatch -> [WrappedEvent] -> RIO e ()
 rerun d es = atomically $ modifyTVar (d^.rerunBuf) (>< Seq.fromList es)
