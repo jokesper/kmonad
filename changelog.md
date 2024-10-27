@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 - `multi-tap` now holds when interrupted by another key while held. (#897)
 - Update Karabiner-DriverKit to 5.0.0 (#???)
+- Modified `tap-next` and `tap-hold-next` to decide without considering
+  button releases (#884)
 
 ### Fixed
 
