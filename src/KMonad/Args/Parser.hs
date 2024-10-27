@@ -374,6 +374,7 @@ settingP = let f s p = symbol s *> p in
     , SFallThrough <$> f "fallthrough"   bool
     , SAllowCmd    <$> f "allow-cmd"     bool
     , SCmpSeqDelay <$> f "cmp-seq-delay" numP
+    , SKeySeqDelay <$> f "key-seq-delay" numP
     , SImplArnd    <$> f "implicit-around" implArndP
     ])
 

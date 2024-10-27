@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
   If you previously used the buttons `missing247` and `missing248`, please update to the new names.
 - Added `retap` which presses another button if the corresponding button is
   repressed within a certain time period (#882)
+- Added `key-seq-delay`, a more general version of `cmp-seq-delay`, which enforces a minimum delay
+  after each key event.
 
 ### Changed
 
