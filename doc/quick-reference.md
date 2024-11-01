@@ -348,6 +348,18 @@ to be the most comfortable.
   (defalias thr (tap-hold-next-release 1000 a sft))
   ```
 
++ `tap-overlap`: like `tap-next-release` but when the next release
+  is its own, we check if the temporal overlap between any currently
+  pressed button and this one is big enough.
+  The overlap is calculated by dividing the overlap by the total time
+  of the other button.
+
++ `tap-hold-overlap`: like `tap-overlap` with an additional timeout.
+
+  ```clojure
+  (defalias tho (tap-hold-overlap 1000 25 a sft))
+  ```
+
 + `tap-hold-next` and `tap-hold-next-release` can take an optional
   `:timeout-button` keyword to specify a button other than the
   hold button which should be held when the timeout expires.

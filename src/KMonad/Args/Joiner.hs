@@ -354,6 +354,7 @@ joinButton ns als =
   let ret    = pure . Just
       go     = unnest . joinButton ns als
       jst    = fmap Just
+      fi :: Num a => Int -> a
       fi     = fromIntegral
       isps l = traverse go . maybe l ((`intersperse` l) . KPause . fi)
   in \case
@@ -402,6 +403,9 @@ joinButton ns als =
     KTapNextRelease t h -> jst $ tapNextRelease    <$> go t <*> go h
     KTapHoldNextRelease ms t h mtb
       -> jst $ tapHoldNextRelease (fi ms) <$> go t <*> go h <*> traverse go mtb
+    KTapOverlap pc t h -> jst $ tapOverlap (fi pc / 100) <$> go t <*> go h
+    KTapHoldOverlap ms pc t h mtb
+      -> jst $ tapHoldOverlap (fi ms) (fi pc / 100) <$> go t <*> go h <*> traverse go mtb
     KTapNextPress t h  -> jst $ tapNextPress       <$> go t <*> go h
     KAroundOnly o i    -> jst $ aroundOnly         <$> go o <*> go i
     KAroundWhenAlone o i -> jst $ aroundWhenAlone  <$> go o <*> go i

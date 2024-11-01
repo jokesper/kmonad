@@ -19,6 +19,7 @@ module KMonad.Util
   , tDiff
 
     -- * Random utility helpers that have no better home
+  , Percentage(..)
   , onErr
   , using
   , logRethrow
@@ -44,6 +45,10 @@ import Data.Time.Clock.System
 -- | Newtype wrapper around 'Int' to add type safety to our time values
 newtype Milliseconds = Milliseconds { unMS :: Int }
   deriving (Eq, Ord, Num, Real, Enum, Integral, Show, Read, Generic, Display, Typeable, Data)
+
+-- | Like 'Milliseconds' but for percentages using 'Float'
+newtype Percentage = Percentage { unPC :: Float }
+  deriving (Eq, Ord, Num, Real, Fractional, RealFrac, Show, Read, Generic, Display, Typeable, Data)
 
 -- | Calculate how much time has elapsed between 2 time points
 tDiff :: ()

@@ -279,6 +279,10 @@ keywordButtons =
   , ("tap-hold-next-release"
     , KTapHoldNextRelease <$> lexeme numP <*> buttonP <*> buttonP
                           <*> optional (keywordP "timeout-button" buttonP))
+  , ("tap-overlap", KTapOverlap <$> lexeme numP <*> buttonP <*> buttonP)
+  , ("tap-hold-overlap"
+    , KTapHoldOverlap <$> lexeme numP <*> lexeme numP <*> buttonP <*> buttonP
+                      <*> optional (keywordP "timeout-button" buttonP))
   , ("tap-next-press"
     , KTapNextPress <$> buttonP <*> buttonP)
   , ("tap-next"       , KTapNext     <$> buttonP     <*> buttonP)

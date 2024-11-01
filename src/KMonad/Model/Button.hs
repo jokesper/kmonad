@@ -54,6 +54,8 @@ module KMonad.Model.Button
   , tapHoldNext
   , tapNextRelease
   , tapHoldNextRelease
+  , tapOverlap
+  , tapHoldOverlap
   , tapNextPress
   , tapMacro
   , tapMacroRelease
@@ -68,7 +70,9 @@ import KMonad.Model.Action
 import KMonad.Keyboard
 import KMonad.Util
 
+import RIO.List (maximumMaybe)
 import qualified RIO.HashSet as S
+import qualified RIO.HashMap as M
 
 --------------------------------------------------------------------------------
 -- $but
@@ -449,6 +453,80 @@ tapHoldNextRelease ms t h mtb = onPress' t $ do
 
     onRelOther :: MonadK m => KeyEvent -> m Catch
     onRelOther e = press h *> hold False *> inject e $> Catch
+
+tapOverlap' :: Maybe Milliseconds -> Percentage -> Button -> Button -> Maybe Button -> Button
+tapOverlap' Nothing _ _ _ (Just _) = error "tap-overlap: timeout-button without timeout"
+tapOverlap' ms pc t h mtb = onPress' t $ do
+  hold True
+  whilePressed 0 mempty
+ where
+  -- We keep track of the time since the switch state changed,
+  -- and use it to either store start times when keys are pressed
+  -- or, after releasing this button and converting the start times to
+  -- relative times, how long a key was pressed without overlap to calculate
+  -- the percentage.
+  whilePressed :: MonadK m => Milliseconds -> HashMap Keycode Milliseconds -> m ()
+  whilePressed time ks = register InputHook . Hook (onTimeout time) $ \r -> do
+    p <- matchMy Release
+    let e = r^.event
+    let isRel = isRelease e
+
+    let time' = time + r^.elapsed
+
+    if
+      -- If the next event is my own release, convert to overlap times and wait for key releases.
+      | p e -> let ks' = ks <&> (time' -) in whileReleased (calcMaxMs ks') 0 ks' $> Catch
+      -- If the next event is another release that was pressed after me we hold
+      | isRel && M.member (e^.keycode) ks -> doHold e
+      -- If the next event is a press, store and recurse
+      | not isRel -> whilePressed time' (M.insert (e^.keycode) time' ks) $> NoCatch
+      -- If the next event is a release of some button pressed before me, recurse
+      | otherwise -> whilePressed time' ks $> NoCatch
+
+  whileReleased :: MonadK m => Milliseconds -> Milliseconds -> HashMap Keycode Milliseconds -> m ()
+  whileReleased maxMs time ks
+    | null ks = doTap
+    | otherwise = tHookF InputHook (calcMaxMs ks) doTap $ \r -> do
+        let e = r^.event
+        let k = e^.keycode
+        let time' = time + r^.elapsed
+
+        case M.lookup k ks of
+          Nothing -> whileReleased maxMs time' ks $> NoCatch
+          Just overlap | maxMsWithoutOverlap overlap > time' ->
+            doHold e <* (inject . mkKeyEvent Release =<< myBinding)
+          Just _ -> whileReleased maxMs time' (M.delete k ks) $> NoCatch
+
+  doTap :: MonadK m => m ()
+  doTap = tap t *> hold False
+
+  doHold :: MonadK m => KeyEvent -> m Catch
+  doHold e = press h *> hold False *> inject e $> Catch
+
+  onTimeout :: MonadK m => Milliseconds -> Maybe (Timeout m)
+  onTimeout time = ms <&> \ms' ->
+    Timeout (ms' - time) $ press (fromMaybe h mtb) *> hold False
+
+  -- Calculate the maximum time we have to wait until we a certain,
+  -- we have been tapped
+  calcMaxMs ks = fromMaybe 0 . maximumMaybe . M.elems $ maxMsWithoutOverlap <$> ks
+
+  maxMsWithoutOverlap overlap =
+    -- overlap / (overlap + maxMsWithout) = pc
+    -- overlap = pc * overlap + pc * maxMsWithout
+    -- (overlap - pc * overlap) / pc = maxMsWithout
+    -- overlap * (1 - pc) / pc = maxMsWithout
+    round $ (1 / pc - 1) * fromIntegral overlap
+
+-- | Create a button like tap-next-release, but also hold if the overlap is enough.
+-- This overlap is calculated by dividing the overlap time by the total time
+-- of the other button being pressed.
+tapOverlap :: Percentage -> Button -> Button -> Button
+tapOverlap pc t h = tapOverlap' Nothing pc t h Nothing
+
+-- | This is to tap-overlap what tap-hold-next-release is to tap-next-release.
+tapHoldOverlap :: Milliseconds -> Percentage -> Button -> Button -> Maybe Button -> Button
+tapHoldOverlap = tapOverlap' . Just
 
 -- | Create a button just like tap-release, but also trigger a hold on presses:
 -- 1. It is the release of this button: We are tapping

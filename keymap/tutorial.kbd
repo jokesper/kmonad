@@ -909,6 +909,29 @@
   but it comes with an additional timeout that, just like `tap-hold-next` will
   jump into holding-mode after a timeout.
 
+  `tap-overlap` is like an upgraded version of `tap-next-release`.
+  When pressing a modifier and a button it is common to release them together,
+  though when releasing two keys at the same time the order, which matters
+  for `tap-next-release`, is abitrary.
+  To fix this this button takes another parameter which signals a hold if an
+  overlap percentage is met.
+  It is calculated by dividing the overlap time by the total time of a second
+  button (see below). If this value is bigger than the percentage given we hold.
+  In the case where the second button is completly surrounded (Pa Tb Ra) we
+  hold just like `tap-next-release`.
+
+    Pa Pb Ra Rb
+    --------       hold time of the `tap-overlap` button  a
+       --------    hold time of a different button        b
+       -----       overlap                                a ∩ b
+
+  The formula is: (a ∩ b)/b
+  Also keep in mind that this calculation produces a decimal value,
+  but we take a percentage as an argument (Use 50 instead of 0.5)
+
+  If you also want the hold behaviour of `tap-hold-next-release` you should
+  consider using `tap-hold-overlap` which takes a timeout as a first parameter.
+
   I honestly think that `tap-hold-next-release`, although it seems the most
   complicated, probably is the most comfortable to use. But I've put all of them
   in a testing layer down below, so give them a go and see what is nice.
@@ -923,6 +946,8 @@
   tnr (tap-next-release x lsft)
   tnp (tap-next-press x lsft)
   tnh (tap-hold-next-release 2000 x lsft)
+  tol (tap-overlap 80 x lsft)
+  tho (tap-hold-overlap 2000 80 x lsft)
 
   ;; Used it the colemak layer
   xcp (tap-hold-next 400 esc ctl)
