@@ -274,8 +274,8 @@ keywordButtons =
   , (,) "stepped"              $ KStepped            <$> buttonsP
   , (,) "tap-hold"             $ KTapHold            <$> numP     <*> buttonP <*> buttonP
   , (,) "tap-hold-next"        $ KTapHoldNext        <$> numP     <*> buttonP <*> buttonP <*> timeoutP
-  , (,) "tap-next-release"     $ KTapNextRelease     <$> buttonP  <*> buttonP
-  , (,) "tap-hold-next-release"$ KTapHoldNextRelease <$> numP     <*> buttonP <*> buttonP <*> timeoutP
+  , (,) "tap-next-release"     $ KTapNextRelease     <$> graceP   <*> buttonP <*> buttonP
+  , (,) "tap-hold-next-release"$ KTapHoldNextRelease <$> numP     <*> graceP  <*> buttonP <*> buttonP <*> timeoutP
   , (,) "tap-next-press"       $ KTapNextPress       <$> buttonP  <*> buttonP
   , (,) "tap-next"             $ KTapNext            <$> buttonP  <*> buttonP
   , (,) "layer-toggle"         $ KLayerToggle        <$> word
@@ -304,6 +304,7 @@ keywordButtons =
   timed = many ((,) <$> numP <*> buttonP)
   kPause = KPause . fromIntegral
   buttonsP = some1 buttonP
+  graceP = optarg'P "grace" numP
   timeoutP = optarg'P "timeout-button" buttonP
   delayP   = optarg'P "delay" numP
 
