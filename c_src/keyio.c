@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <linux/input.h>
@@ -30,7 +27,8 @@ int acquire_uinput_keysink(int fd, char *name, int vendor, int product, int vers
   usetup.id.product = product;
   usetup.id.version = version;
 
-  strcpy(usetup.name, name);
+
+  strncpy(usetup.name, name, UINPUT_MAX_NAME_SIZE);
   ioctl(fd, UI_DEV_SETUP, &usetup);
 
   // Create the device
@@ -54,23 +52,3 @@ int send_event(int fd, int type, int code, int val, int s, int us) {
   ie.time.tv_usec = us;
   return write(fd, &ie, sizeof(ie));
 }
-
-// Print information about memory layout of input_event
-void input_event_info() {
-  struct input_event event;
-  printf("sizeof  event is:               %d\n", (int) sizeof(event));
-  printf("alignof event is:               %d\n", (int) __alignof__(event));
-  printf("sizeof  event.time is:          %d\n", (int) sizeof(event.time));
-  printf("alignof event.time is:          %d\n", (int) __alignof__(event.time));
-  printf("sizeof  event.time.tv_sec is:   %d\n", (int) sizeof(event.time.tv_sec));
-  printf("alignof event.time.tv_sec is:   %d\n", (int) __alignof__(event.time.tv_sec));
-  printf("sizeof  event.time.tv_usec is:  %d\n", (int) sizeof(event.time.tv_usec));
-  printf("alignof event.time.tv_usec is:  %d\n", (int) __alignof__(event.time.tv_usec));
-  printf("sizeof  event.type is:          %d\n", (int) sizeof(event.type));
-  printf("alignof event.type is:          %d\n", (int) __alignof__(event.type));
-  printf("sizeof  event.code is:          %d\n", (int) sizeof(event.code));
-  printf("alignof event.code is:          %d\n", (int) __alignof__(event.code));
-  printf("sizeof  event.value is:         %d\n", (int) sizeof(event.value));
-  printf("alignof event.value is:         %d\n", (int) __alignof__(event.value));
-}
-
