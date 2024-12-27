@@ -54,8 +54,8 @@ foreign import ccall "ioctl_keyboard"
 ioctl_keyboard :: MonadIO m
   => Fd      -- ^ Descriptor to open keyboard file (like /dev/input/eventXX)
   -> Bool    -- ^ True to grab, False to ungrab
-  -> m Int   -- ^ Return the exit code
-ioctl_keyboard (Fd h) b = fromIntegral <$>
+  -> m CInt  -- ^ Return the exit code
+ioctl_keyboard (Fd h) b =
   liftIO (c_ioctl_keyboard h (if b then 1 else 0))
 
 

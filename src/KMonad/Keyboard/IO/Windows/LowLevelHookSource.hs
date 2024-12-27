@@ -27,11 +27,11 @@ import KMonad.Keyboard.IO.Windows.Types
 
 -- | Use the windows c-api to `grab` a keyboard
 foreign import ccall "grab_kb"
-  grab_kb :: IO Word8
+  grab_kb :: IO ()
 
 -- | Release the keyboard hook
 foreign import ccall "release_kb"
-  release_kb :: IO Word8
+  release_kb :: IO ()
 
 -- | Pass a pointer to a buffer to wait_key, when it returns the buffer can be
 -- read for the next key event.
@@ -43,7 +43,7 @@ foreign import ccall "wait_key"
 
 -- | Data used to track `connection` to windows process
 data LLHook = LLHook
-  { _thread :: !(Async Word8)        -- ^ The thread-id of the listen-process
+  { _thread :: !(Async ())        -- ^ The thread-id of the listen-process
   , _buffer :: !(Ptr WinKeyEvent) -- ^ Buffer used to communicate with process
   }
 makeLenses ''LLHook
@@ -69,7 +69,7 @@ llClose :: HasLogFunc e => LLHook -> RIO e ()
 llClose ll = do
   logInfo "Unregistering low-level Windows keyboard hook"
   liftIO $ do
-    _ <- release_kb
+    release_kb
     cancel $ ll^.thread -- This might not be necessary, but it is safer
     free   $ ll^.buffer
 

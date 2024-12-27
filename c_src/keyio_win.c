@@ -92,7 +92,7 @@ void wait_key(struct KeyEvent* e)
 }
 
 // Insert the keyboard hook and start the monitoring process
-int grab_kb()
+void grab_kb()
 {
   // Insert the hook, error on failure
   hookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, keyHandler, NULL, 0);
@@ -109,11 +109,10 @@ int grab_kb()
 }
 
 // Uninstall the keyboard hook and kill the process
-int release_kb()
+void release_kb()
 {
   UnhookWindowsHookEx(hookHandle);
   PostQuitMessage(0);
-  return(0);
 }
 
 // Send key to the OS

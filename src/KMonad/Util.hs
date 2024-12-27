@@ -36,6 +36,7 @@ import KMonad.Prelude
 
 import Data.Time.Clock
 import Data.Time.Clock.System
+import Foreign.C
 
 --------------------------------------------------------------------------------
 -- $time
@@ -68,7 +69,7 @@ tDiff a b = let
 --
 -- > someFFIcall `onErr` MyCallFailedError someData
 --
-onErr :: (MonadUnliftIO m, Exception e) => m Int -> e -> m ()
+onErr :: (MonadUnliftIO m, Exception e) => m CInt -> e -> m ()
 onErr a err = a >>= \ret -> when (ret == -1) $ throwIO err
 
 -- | Embed the action of using an 'Acquire' in a continuation monad

@@ -5,6 +5,7 @@ where
 
 import KMonad.Prelude
 
+import Foreign.C
 import Foreign.Ptr
 import Foreign.Marshal
 import Foreign.Storable
@@ -14,7 +15,7 @@ import KMonad.Keyboard.IO
 import KMonad.Keyboard.IO.Mac.Types
 
 foreign import ccall "send_key"
-  send_key :: Ptr MacKeyEvent -> IO ()
+  send_key :: Ptr MacKeyEvent -> IO CInt
 
 newtype EvBuf = EvBuf
   { _buffer :: Ptr MacKeyEvent -- ^ The pointer we write events to
@@ -43,4 +44,4 @@ skSend :: HasLogFunc e => EvBuf -> KeyEvent -> RIO e ()
 skSend sk e = either throwIO go $ toMacKeyEvent e
   where go e' = liftIO $ do
           poke (sk^.buffer) e'
-          send_key $ sk^.buffer
+          send_key (sk^.buffer) `onErr` undefined

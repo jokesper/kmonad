@@ -107,23 +107,23 @@ foreign import ccall "acquire_uinput_keysink"
     -> CInt    -- ^ Vendor ID
     -> CInt    -- ^ Product ID
     -> CInt    -- ^ Version ID
-    -> IO Int
+    -> IO CInt
 
 foreign import ccall "release_uinput_keysink"
-  c_release_uinput_keysink :: CInt -> IO Int
+  c_release_uinput_keysink :: CInt -> IO CInt
 
 foreign import ccall "send_event"
-  c_send_event :: CInt -> CInt -> CInt -> CInt -> CInt -> CInt -> IO Int
+  c_send_event :: CInt -> CInt -> CInt -> CInt -> CInt -> CInt -> IO CInt
 
 -- | Create and acquire a Uinput device
-acquire_uinput_keysink :: MonadIO m => Fd -> UinputCfg -> m Int
+acquire_uinput_keysink :: MonadIO m => Fd -> UinputCfg -> m CInt
 acquire_uinput_keysink (Fd h) c = liftIO $ do
   cstr <- newCString $ c^.keyboardName
   c_acquire_uinput_keysink h cstr
     (c^.vendorCode) (c^.productCode) (c^.productVersion)
 
 -- | Release a Uinput device
-release_uinput_keysink :: MonadIO m => Fd -> m Int
+release_uinput_keysink :: MonadIO m => Fd -> m CInt
 release_uinput_keysink (Fd h) = liftIO $ c_release_uinput_keysink h
 
 -- | Using a Uinput device, send a LinuxKeyEvent to the Linux kernel

@@ -5,6 +5,7 @@ where
 
 import KMonad.Prelude
 
+import Foreign.C
 import Foreign.Marshal hiding (void)
 import Foreign.Ptr
 import Foreign.Storable
@@ -18,16 +19,16 @@ import KMonad.Keyboard.IO.Mac.Types
 
 -- | Use the mac c-api to `grab` a keyboard
 foreign import ccall "grab_kb"
-  grab_kb :: CString -> IO Word8
+  grab_kb :: CString -> IO CInt
 
 -- | Release the keyboard hook
 foreign import ccall "release_kb"
-  release_kb :: IO Word8
+  release_kb :: IO CInt
 
 -- | Pass a pointer to a buffer to wait_key, when it returns the buffer can be
 -- read for the next key event.
 foreign import ccall "wait_key"
-  wait_key :: Ptr MacKeyEvent -> IO Word8
+  wait_key :: Ptr MacKeyEvent -> IO CInt
 
 
 newtype EvBuf = EvBuf
