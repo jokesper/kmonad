@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-|
 Module      : KMonad.Util
 Description : Various bits and bobs that I don't know where to put
@@ -64,13 +65,16 @@ tDiff a b = let
 --------------------------------------------------------------------------------
 -- $util
 
--- | A helper function that helps to throw errors when a return code is -1.
+-- | A helper function that helps to throw errors when a return code is -1 (linux) or not 0 (everwhere else).
 -- Easiest when used as infix like this:
 --
 -- > someFFIcall `onErr` MyCallFailedError someData
---
 onErr :: (MonadUnliftIO m, Exception e) => m CInt -> e -> m ()
+#ifdef linux_HOST_OS
 onErr a err = a >>= \ret -> when (ret == -1) $ throwIO err
+#else
+onErr a err = a >>= \ret -> when (ret /= 0) $ throwIO err
+#endif
 
 -- | Embed the action of using an 'Acquire' in a continuation monad
 using :: Acquire a -> ContT r (RIO e) a
