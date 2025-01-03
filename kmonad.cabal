@@ -204,6 +204,7 @@ test-suite spec
       KMonad.GestureSpec
       KMonad.ComposeSeqSpec
       KMonad.NoOverlapInButtonNamingSpec
+      KMonad.KeycodeSpec
   default-language:
       Haskell2010
   build-tool-depends: hspec-discover:hspec-discover == 2.*

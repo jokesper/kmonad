@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 - Added `key-seq-delay`, a more general version of `cmp-seq-delay`, which enforces a minimum delay
   after each key event.
 - Added `:grace` to `tap-next-release` and `tap-hold-next-release`, which could improve your shifting experience. (#916)
+- Added `boot.initrd.services.kmonad.enable` NixOS option to use KMonad in the initrd (#941).
 
 ### Changed
 
