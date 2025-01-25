@@ -68,7 +68,6 @@ import KMonad.Model.Action
 import KMonad.Keyboard
 
 import qualified RIO.HashSet as S
-import qualified RIO.HashMap as M
 
 --------------------------------------------------------------------------------
 -- $but
@@ -480,14 +479,14 @@ tapNextPress t h = onPress' t go
 -- into its list. The moment a delay is exceeded or immediately upon reaching
 -- the last button, that button is pressed.
 multiTap :: Button -> [(Milliseconds, Button)] -> Button
-multiTap l bs = onPress' tap' $ go bs
+multiTap l bs = onPress' tap' $ hold True *> go bs
   where
     tap' = case bs of
       []           -> l
       ((_, b) : _) -> b
 
     go :: [(Milliseconds, Button)] -> AnyK ()
-    go []            = press l
+    go []            = press l *> hold False
     go ((ms, b):bs') = do
       -- This is a bit complicated. What we do is:
       -- 1.  We wait for an event
@@ -507,14 +506,14 @@ multiTap l bs = onPress' tap' $ go bs
       -- 3C. If we detect any other (unrelated) press event, then the multi-tap
       --     sequence is cancelled like in 2C. We trigger a tap of the current
       --     button of the sequence.
-      let doNext pred onTimeout next ms' = tHookF InputHook ms' onTimeout $ \t -> do
+      let doNext pred onTimeout next ms' = tHookF InputHookPrio ms' onTimeout $ \t -> do
             pr <- pred
             if | pr (t^.event)      -> next (ms - t^.elapsed) $> Catch
                | isPress (t^.event) -> onTimeout              $> NoCatch
-               | otherwise          -> pure NoCatch
+               | otherwise          -> hold False             $> NoCatch
       doNext (matchMy Release)
-             (press b)
-             (doNext (matchMy Press) (tap b) (\_ -> go bs'))
+             (press b *> hold False)
+             (doNext (matchMy Press) (tap b *> hold False) (\_ -> go bs'))
              ms
 
 -- | Create a 'Button' that performs a series of taps on press. Note that the

@@ -30,7 +30,8 @@ module KMonad.Model.Action
 
     -- * Lenses
   , HasHook(..)
-  , HasTimeout(..)
+  , delay
+  , action
   , HasTrigger(..)
 
     -- * Layer operations
@@ -105,7 +106,7 @@ data Timeout m = Timeout
   { _delay  :: Milliseconds -- ^ Delay before timeout action is triggered
   , _action :: m ()         -- ^ Action to perform upon timeout
   }
-makeClassy ''Timeout
+makeLenses ''Timeout
 
 -- | The content for 1 key hook
 data Hook m = Hook
