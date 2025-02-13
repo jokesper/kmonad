@@ -1,0 +1,25 @@
+name: Nix Flake CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Clone project
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v27
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - name: Build flake
+      run: nix build --print-build-logs nix
+
+    - name: Check flake
+      run: nix flake check 'git+file://.?dir=nix'
