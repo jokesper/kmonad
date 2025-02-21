@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternSynonyms #-}
 {-|
 Module      : KMonad.Util
 Description : Various bits and bobs that I don't know where to put
@@ -15,6 +16,7 @@ module KMonad.Util
   ( -- * Time units and utils
     -- $time
     Milliseconds
+  , pattern Microseconds
   , toUS
   , unMS
   , tDiff
@@ -46,6 +48,9 @@ import Data.Time.Clock.System
 newtype Milliseconds = Milliseconds { unMS :: Fixed E3 }
   deriving (Eq, Ord, Num, Real, Enum, Fractional, RealFrac, Show, Read, Generic, Typeable, Data)
 
+pattern Microseconds :: Integer -> Milliseconds
+pattern Microseconds x = Milliseconds (MkFixed x)
+
 toUS :: Milliseconds -> Int
 toUS = fromEnum
 
@@ -61,7 +66,7 @@ tDiff a b = let
   a' = systemToUTCTime a
   b' = systemToUTCTime b
   d  = diffUTCTime b' a'
-  in Milliseconds $ MkFixed (round d)
+  in Microseconds (round d)
 -- tDiff (MkSystemTime s_a ns_a) (MkSystemTime s_b ns_b) = let
   -- s  = fromIntegral $ (s_b  - s_a) * 1000
   -- ns = fromIntegral $ (ns_b - ns_a) `div` 1000000

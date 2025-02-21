@@ -143,7 +143,17 @@ keycodeP = fromNamed (Q.reverse keyNames ^.. Q.itemed) <?> "keycode"
 
 -- | Parse an integer
 timeP :: Parser Milliseconds
-timeP = fromInteger <$> L.decimal
+timeP = liftA2 (+) intP (option 0 fracP) <|> fracP <?> "milliseconds"
+ where
+  intP = fromInteger <$> L.decimal
+  fracP = do
+    void $ char '.'
+    frac <- takeWhile1P Nothing isDigit
+    let digits = (length . show $ toUS 1) - 1
+    let pad = digits - T.length frac
+    when (pad < 0) . fail $ "You may only specify " ++ show digits ++ " decimal digits"
+    pure . Microseconds . fromMaybe (error "Internal assumptium violated while parsing fractional part") $
+      readMaybe (unpack frac ++ replicate pad '0')
 
 -- | Parse text with escaped characters between double quotes.
 textP :: Parser Text
