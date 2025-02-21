@@ -46,7 +46,7 @@ loadConfig cmd = do
     , _fallThrough  = _flt     cgt
     , _allowCmd     = _allow   cgt
     , _startDelay   = _strtDel cmd
-    , _keyOutDelay  = fromIntegral <$> _ksd cgt
+    , _keyOutDelay  = _ksd     cgt
     }
 
 

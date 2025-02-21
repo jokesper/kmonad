@@ -32,6 +32,7 @@ import KMonad.Model.Action
 import KMonad.Model.Button
 import KMonad.Keyboard
 import KMonad.Keyboard.IO
+import KMonad.Util
 
 #ifdef linux_HOST_OS
 import KMonad.Keyboard.IO.Linux.DeviceSource
@@ -261,7 +262,7 @@ getAllow = do
     Left Duplicate -> throwError $ DuplicateSetting "allow-cmd"
 
 -- | Extract the cmp-seq-delay setting
-getCmpSeqDelay :: J (Maybe Int)
+getCmpSeqDelay :: J (Maybe Milliseconds)
 getCmpSeqDelay = do
   cfg <- oneBlock "defcfg" _KDefCfg
   case onlyOne . extract _SCmpSeqDelay $ cfg of
@@ -271,7 +272,7 @@ getCmpSeqDelay = do
     Left Duplicate -> throwError $ DuplicateSetting "cmp-seq-delay"
 
 -- | Extract the key-seq-delay setting
-getKeySeqDelay :: J (Maybe Int)
+getKeySeqDelay :: J (Maybe Milliseconds)
 getKeySeqDelay = do
   cfg <- oneBlock "defcfg" _KDefCfg
   case onlyOne . extract _SKeySeqDelay $ cfg of
@@ -367,8 +368,7 @@ joinButton ns als =
   let ret    = pure . Just
       go     = unnest . joinButton ns als
       jst    = fmap Just
-      fi     = fromIntegral
-      isps l = traverse go . maybe l ((`intersperse` l) . KPause . fi)
+      isps l = traverse go . maybe l ((`intersperse` l) . KPause)
   in \case
     -- Variable dereference
     KRef t -> case M.lookup t als of
@@ -393,7 +393,7 @@ joinButton ns als =
       then ret $ layerRem t
       else throwError $ MissingLayer t
     KLayerDelay s t -> if t `elem` ns
-      then ret $ layerDelay (fi s) t
+      then ret $ layerDelay s t
       else throwError $ MissingLayer t
     KLayerNext t -> if t `elem` ns
       then ret $ layerNext t
@@ -402,7 +402,7 @@ joinButton ns als =
     -- Various compound buttons
     KComposeSeq bs     -> do csd <- getCmpSeqDelay
                              c   <- view cmpKey
-                             csd' <- for csd $ go . KPause . fi
+                             csd' <- for csd $ go . KPause
                              jst $ tapMacro . (c:) . maybe id (:) csd' <$> isps bs csd
     KTapMacro bs mbD   -> jst $ tapMacro           <$> isps bs mbD
     KBeforeAfterNext b a -> jst $ beforeAfterNext <$> go b <*> go a
@@ -410,26 +410,26 @@ joinButton ns als =
       jst $ tapMacroRelease           <$> isps bs mbD
     KAround o i        -> jst $ around             <$> go o <*> go i
     KTapNext t h       -> jst $ tapNext            <$> go t <*> go h
-    KTapHold s t h     -> jst $ tapHold (fi s)     <$> go t <*> go h
+    KTapHold s t h     -> jst $ tapHold s          <$> go t <*> go h
     KTapHoldNext s t h mtb
-      -> jst $ tapHoldNext (fi s) <$> go t <*> go h <*> traverse go mtb
+      -> jst $ tapHoldNext s <$> go t <*> go h <*> traverse go mtb
     KTapNextRelease t h -> jst $ tapNextRelease    <$> go t <*> go h
     KTapHoldNextRelease ms t h mtb
-      -> jst $ tapHoldNextRelease (fi ms) <$> go t <*> go h <*> traverse go mtb
+      -> jst $ tapHoldNextRelease ms <$> go t <*> go h <*> traverse go mtb
     KTapNextPress t h  -> jst $ tapNextPress       <$> go t <*> go h
     KTapHoldNextPress ms t h mtb
-      -> jst $ tapHoldNextPress (fi ms) <$> go t <*> go h <*> traverse go mtb
+      -> jst $ tapHoldNextPress ms <$> go t <*> go h <*> traverse go mtb
     KAroundOnly o i    -> jst $ aroundOnly         <$> go o <*> go i
     KAroundWhenAlone o i -> jst $ aroundWhenAlone  <$> go o <*> go i
     KAroundImplicit o i  -> joinButton ns als =<< fromImplArnd o i =<< view implArnd
     KAroundNext b      -> jst $ aroundNext         <$> go b
     KAroundNextSingle b -> jst $ aroundNextSingle <$> go b
-    KAroundNextTimeout ms b t -> jst $ aroundNextTimeout (fi ms) <$> go b <*> go t
+    KAroundNextTimeout ms b t -> jst $ aroundNextTimeout ms <$> go b <*> go t
     KPause ms          -> jst . pure $ onPress (pause ms)
     KMultiTap bs d     -> jst $ multiTap <$> go d <*> mapM f bs
-      where f (ms, b) = (fi ms,) <$> go b
+      where f (ms, b) = (ms,) <$> go b
     KStepped bs        -> jst $ steppedButton <$> mapM go bs
-    KStickyKey s d     -> jst $ stickyKey (fi s) <$> go d
+    KStickyKey s d     -> jst $ stickyKey s   <$> go d
 
     -- Non-action buttons
     KTrans -> pure Nothing

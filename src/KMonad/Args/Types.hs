@@ -65,35 +65,37 @@ data DefButton
   | KLayerAdd Text                         -- ^ Add a layer when pressed
   | KLayerRem Text                         -- ^ Remove top instance of a layer when pressed
   | KTapNext DefButton DefButton           -- ^ Do 2 things based on behavior
-  | KTapHold Int DefButton DefButton       -- ^ Do 2 things based on behavior and delay
-  | KTapHoldNext Int DefButton DefButton (Maybe DefButton)
+  | KTapHold Milliseconds DefButton DefButton
+    -- ^ Do 2 things based on behavior and delay
+  | KTapHoldNext Milliseconds DefButton DefButton (Maybe DefButton)
     -- ^ Mixture between KTapNext and KTapHold
   | KTapNextRelease DefButton DefButton    -- ^ Do 2 things based on behavior
-  | KTapHoldNextRelease Int DefButton DefButton (Maybe DefButton)
+  | KTapHoldNextRelease Milliseconds DefButton DefButton (Maybe DefButton)
     -- ^ Like KTapNextRelease but with a timeout
   | KTapNextPress DefButton DefButton      -- ^ Like KTapNextRelease but also hold on presses
-  | KTapHoldNextPress Int DefButton DefButton (Maybe DefButton)
+  | KTapHoldNextPress Milliseconds DefButton DefButton (Maybe DefButton)
     -- ^ Like KTapNextPress but with a timeout
   | KAroundNext DefButton                  -- ^ Surround a future button
   | KAroundNextSingle DefButton            -- ^ Surround a future button
-  | KMultiTap [(Int, DefButton)] DefButton -- ^ Do things depending on tap-count
+  | KMultiTap [(Milliseconds, DefButton)] DefButton
+  -- ^ Do things depending on tap-count
   | KStepped [DefButton]                   -- ^ Do different things, one-by-one
   | KAround DefButton DefButton            -- ^ Wrap 1 button around another
   | KAroundOnly DefButton DefButton        -- ^ Wrap 1 button only around another
   | KAroundWhenAlone DefButton DefButton   -- ^ Wrap 1 button around another when it's "alone"
   | KAroundImplicit DefButton DefButton    -- ^ Wrap 1 button around another
-  | KAroundNextTimeout Int DefButton DefButton
-  | KTapMacro [DefButton] (Maybe Int)
+  | KAroundNextTimeout Milliseconds DefButton DefButton
+  | KTapMacro [DefButton] (Maybe Milliseconds)
     -- ^ Sequence of buttons to tap, possible delay between each press
-  | KTapMacroRelease [DefButton] (Maybe Int)
+  | KTapMacroRelease [DefButton] (Maybe Milliseconds)
     -- ^ Sequence of buttons to tap, tap last on release, possible delay between each press
   | KComposeSeq [DefButton]                -- ^ Compose-key sequence
   | KPause Milliseconds                    -- ^ Pause for a period of time
-  | KLayerDelay Int LayerTag               -- ^ Switch to a layer for a period of time
+  | KLayerDelay Milliseconds LayerTag      -- ^ Switch to a layer for a period of time
   | KLayerNext LayerTag                    -- ^ Perform next button in different layer
   | KCommand Text (Maybe Text)             -- ^ Execute a shell command on press, as well
                                            --   as possibly on release
-  | KStickyKey Int DefButton               -- ^ Act as if a button is pressed for a period of time
+  | KStickyKey Milliseconds DefButton      -- ^ Act as if a button is pressed for a period of time
   | KBeforeAfterNext DefButton DefButton   -- ^ Surround a future button in a before and after tap
   | KTrans                                 -- ^ Transparent button that does nothing
   | KBlock                                 -- ^ Button that catches event
@@ -125,7 +127,7 @@ data CfgToken = CfgToken
   , _fstL  :: LayerTag                          -- ^ Name of initial layer
   , _flt   :: Bool                              -- ^ How to deal with unhandled events
   , _allow :: Bool                              -- ^ Whether to allow shell commands
-  , _ksd   :: Maybe Int                         -- ^ Output delay between keys
+  , _ksd   :: Maybe Milliseconds                -- ^ Output delay between keys
   }
 makeClassy ''CfgToken
 
@@ -178,7 +180,7 @@ data IToken
 -- | All different output-tokens KMonad can take
 data OToken
   = KUinputSink Text (Maybe Text)
-  | KSendEventSink (Maybe (Int, Int))
+  | KSendEventSink (Maybe (Milliseconds, Milliseconds))
   | KKextSink
   deriving (Show)
 
@@ -189,8 +191,8 @@ data DefSetting
   | SCmpSeq      DefButton
   | SFallThrough Bool
   | SAllowCmd    Bool
-  | SCmpSeqDelay Int
-  | SKeySeqDelay Int
+  | SCmpSeqDelay Milliseconds
+  | SKeySeqDelay Milliseconds
   | SImplArnd    ImplArnd
   deriving (Show)
 makeClassyPrisms ''DefSetting

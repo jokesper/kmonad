@@ -17,7 +17,7 @@ module KMonad.Args.Cmd
 where
 
 import KMonad.Prelude hiding (try)
-import KMonad.Args.Parser (itokens, keywordButtons, noKeywordButtons, otokens, symbol, numP, implArndButtons)
+import KMonad.Args.Parser (itokens, keywordButtons, noKeywordButtons, otokens, symbol, timeP, implArndButtons)
 import KMonad.Args.TH (gitHash)
 import KMonad.Args.Types (DefSetting(..))
 import KMonad.Util
@@ -147,7 +147,7 @@ cmpSeqP = optional $ SCmpSeq <$> option
 
 -- | Specify compose sequence key delays.
 cmpSeqDelayP :: Parser (Maybe DefSetting)
-cmpSeqDelayP = optional $ SCmpSeqDelay <$> option (fromIntegral <$> megaReadM numP)
+cmpSeqDelayP = optional $ SCmpSeqDelay <$> option (megaReadM timeP)
   (  long  "cmp-seq-delay"
   <> metavar "TIME"
   <> help  "How many ms to wait between each key of a compose sequence"
@@ -155,7 +155,7 @@ cmpSeqDelayP = optional $ SCmpSeqDelay <$> option (fromIntegral <$> megaReadM nu
 
 -- | Specify key event output delays.
 keySeqDelayP :: Parser (Maybe DefSetting)
-keySeqDelayP = optional $ SKeySeqDelay <$> option (fromIntegral <$> megaReadM numP)
+keySeqDelayP = optional $ SKeySeqDelay <$> option (megaReadM timeP)
   (  long  "key-seq-delay"
   <> metavar "TIME"
   <> help  "How many ms to wait between each key event outputted"
@@ -191,7 +191,7 @@ iTokenP = optional $ SIToken <$> option (tokenParser itokens)
 
 -- | Parse a flag that disables auto-releasing the release of enter
 startDelayP :: Parser Milliseconds
-startDelayP = option (fromIntegral <$> megaReadM numP)
+startDelayP = option (megaReadM timeP)
   (  long  "start-delay"
   <> short 'w'
   <> value 300

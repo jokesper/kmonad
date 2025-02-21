@@ -22,7 +22,7 @@ module KMonad.Args.Parser
 
   -- * Building Parsers
   , symbol
-  , numP
+  , timeP
 
   -- * Parsers for Tokens and Buttons
   , otokens
@@ -40,6 +40,7 @@ import KMonad.Parsing
 import KMonad.Args.Types
 import KMonad.Keyboard
 import KMonad.Keyboard.ComposeSeq
+import KMonad.Util
 
 
 
@@ -141,8 +142,8 @@ keycodeP :: Parser Keycode
 keycodeP = fromNamed (Q.reverse keyNames ^.. Q.itemed) <?> "keycode"
 
 -- | Parse an integer
-numP :: Parser Int
-numP = L.decimal
+timeP :: Parser Milliseconds
+timeP = fromInteger <$> L.decimal
 
 -- | Parse text with escaped characters between double quotes.
 textP :: Parser Text
@@ -223,13 +224,13 @@ moddedP = KAroundImplicit <$> prfx <*> buttonP
 
 -- | Parse Pxxx as pauses (useful in macros)
 pauseP :: Parser DefButton
-pauseP = KPause . fromIntegral <$> (char 'P' *> numP)
+pauseP = KPause <$> (char 'P' *> timeP)
 
 -- | #()-syntax tap-macro
 rmTapMacroP :: Parser DefButton
 rmTapMacroP =
   char '#' *> paren (KTapMacro <$> some buttonP
-                               <*> optional (keywordP "delay" numP))
+                               <*> optional (keywordP "delay" timeP))
 
 -- | Compose-key sequence
 composeSeqP :: Parser [DefButton]
@@ -270,19 +271,19 @@ keywordButtons =
   , ("release-only"   , KReleaseOnly <$> keycodeP)
   , ("multi-tap"      , KMultiTap    <$> timed       <*> buttonP)
   , ("stepped"        , KStepped     <$> some buttonP)
-  , ("tap-hold"       , KTapHold     <$> lexeme numP <*> buttonP <*> buttonP)
+  , ("tap-hold"       , KTapHold     <$> lexeme timeP <*> buttonP <*> buttonP)
   , ("tap-hold-next"
-    , KTapHoldNext <$> lexeme numP <*> buttonP <*> buttonP
+    , KTapHoldNext <$> lexeme timeP <*> buttonP <*> buttonP
                    <*> optional (keywordP "timeout-button" buttonP))
   , ("tap-next-release"
     , KTapNextRelease <$> buttonP <*> buttonP)
   , ("tap-hold-next-release"
-    , KTapHoldNextRelease <$> lexeme numP <*> buttonP <*> buttonP
+    , KTapHoldNextRelease <$> lexeme timeP <*> buttonP <*> buttonP
                           <*> optional (keywordP "timeout-button" buttonP))
   , ("tap-next-press"
     , KTapNextPress <$> buttonP <*> buttonP)
   , ("tap-hold-next-press"
-    , KTapHoldNextPress <$> lexeme numP <*> buttonP <*> buttonP
+    , KTapHoldNextPress <$> lexeme timeP <*> buttonP <*> buttonP
                         <*> optional (keywordP "timeout-button" buttonP))
   , ("tap-next"       , KTapNext     <$> buttonP     <*> buttonP)
   , ("layer-toggle"   , KLayerToggle <$> lexeme word)
@@ -291,24 +292,24 @@ keywordButtons =
   , ("permanent-layer" , KLayerSwitch <$> lexeme word)
   , ("layer-add"      , KLayerAdd    <$> lexeme word)
   , ("layer-rem"      , KLayerRem    <$> lexeme word)
-  , ("layer-delay"    , KLayerDelay  <$> lexeme numP <*> lexeme word)
+  , ("layer-delay"    , KLayerDelay  <$> lexeme timeP <*> lexeme word)
   , ("layer-next"     , KLayerNext   <$> lexeme word)
   , ("around-next"    , KAroundNext  <$> buttonP)
   , ("around-next-single", KAroundNextSingle <$> buttonP)
   , ("before-after-next", KBeforeAfterNext <$> buttonP <*> buttonP)
-  , ("around-next-timeout", KAroundNextTimeout <$> lexeme numP <*> buttonP <*> buttonP)
+  , ("around-next-timeout", KAroundNextTimeout <$> lexeme timeP <*> buttonP <*> buttonP)
   , ("tap-macro"
-    , KTapMacro <$> lexeme (some buttonP) <*> optional (keywordP "delay" numP))
+    , KTapMacro <$> lexeme (some buttonP) <*> optional (keywordP "delay" timeP))
   , ("tap-macro-release"
-    , KTapMacroRelease <$> lexeme (some buttonP) <*> optional (keywordP "delay" numP))
+    , KTapMacroRelease <$> lexeme (some buttonP) <*> optional (keywordP "delay" timeP))
   , ("cmd-button"     , KCommand     <$> lexeme textP <*> optional (lexeme textP))
-  , ("pause"          , KPause . fromIntegral <$> lexeme numP)
-  , ("sticky-key"     , KStickyKey   <$> lexeme numP <*> buttonP)
+  , ("pause"          , KPause       <$> lexeme timeP)
+  , ("sticky-key"     , KStickyKey   <$> lexeme timeP <*> buttonP)
   ]
   ++ map (\(nm,_,btn) -> (nm, btn <$> buttonP <*> buttonP)) implArndButtons
  where
-  timed :: Parser [(Int, DefButton)]
-  timed = many ((,) <$> lexeme numP <*> lexeme buttonP)
+  timed :: Parser [(Milliseconds, DefButton)]
+  timed = many ((,) <$> lexeme timeP <*> lexeme buttonP)
 
 implArndButtons :: [(Text, ImplArnd, DefButton -> DefButton -> DefButton)]
 implArndButtons = sortBy (flip compare `on` (T.length . view _1)) -- Prevents early return due to `around`
@@ -352,7 +353,7 @@ otokenP = choice $ map (try . uncurry statement) otokens
 otokens :: [(Text, Parser OToken)]
 otokens =
   [ ("uinput-sink"    , KUinputSink <$> lexeme textP <*> optional (lexeme textP))
-  , ("send-event-sink", KSendEventSink <$> optional ((,) <$> lexeme numP <*> lexeme numP))
+  , ("send-event-sink", KSendEventSink <$> optional ((,) <$> lexeme timeP <*> lexeme timeP))
   , ("kext"           , pure KKextSink)]
 
 -- | Parse an impl arnd token
@@ -374,8 +375,8 @@ settingP = let f s p = symbol s *> p in
     , SCmpSeq      <$> f "cmp-seq"       buttonP
     , SFallThrough <$> f "fallthrough"   bool
     , SAllowCmd    <$> f "allow-cmd"     bool
-    , SCmpSeqDelay <$> f "cmp-seq-delay" numP
-    , SKeySeqDelay <$> f "key-seq-delay" numP
+    , SCmpSeqDelay <$> f "cmp-seq-delay" timeP
+    , SKeySeqDelay <$> f "key-seq-delay" timeP
     , SImplArnd    <$> f "implicit-around" implArndP
     ])
 
