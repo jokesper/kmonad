@@ -115,7 +115,7 @@ register hs h = do
     Just t' -> void . async $ do
       logDebug $ "Registering " <> display (t'^.delay)
               <> "ms hook: " <> display (hashUnique tag)
-      threadDelay $ 1000 * fromIntegral (t'^.delay)
+      threadDelay $ toUS (t'^.delay)
       atomically $ putTMVar (hs^.injectTmr) tag
 
 -- | Cancel a hook by removing it from the store

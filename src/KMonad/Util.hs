@@ -15,6 +15,7 @@ module KMonad.Util
   ( -- * Time units and utils
     -- $time
     Milliseconds
+  , toUS
   , unMS
   , tDiff
 
@@ -42,8 +43,14 @@ import Data.Time.Clock.System
 --
 
 -- | Newtype wrapper around 'Int' to add type safety to our time values
-newtype Milliseconds = Milliseconds { unMS :: Int }
-  deriving (Eq, Ord, Num, Real, Enum, Integral, Show, Read, Generic, Display, Typeable, Data)
+newtype Milliseconds = Milliseconds { unMS :: Fixed E3 }
+  deriving (Eq, Ord, Num, Real, Enum, Fractional, RealFrac, Show, Read, Generic, Typeable, Data)
+
+toUS :: Milliseconds -> Int
+toUS = fromEnum
+
+instance Display Milliseconds where
+  display = fromString . showFixed True . unMS
 
 -- | Calculate how much time has elapsed between 2 time points
 tDiff :: ()
@@ -54,7 +61,7 @@ tDiff a b = let
   a' = systemToUTCTime a
   b' = systemToUTCTime b
   d  = diffUTCTime b' a'
-  in round $ d * 1000
+  in Milliseconds $ MkFixed (round d)
 -- tDiff (MkSystemTime s_a ns_a) (MkSystemTime s_b ns_b) = let
   -- s  = fromIntegral $ (s_b  - s_a) * 1000
   -- ns = fromIntegral $ (ns_b - ns_a) `div` 1000000

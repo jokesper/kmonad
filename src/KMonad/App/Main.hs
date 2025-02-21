@@ -78,7 +78,7 @@ initAppEnv cfg = do
   lgf <- view logFuncL
 
   -- Wait a bit for the user to release the 'Return' key with which they started KMonad
-  threadDelay $ fromIntegral (cfg^.startDelay) * 1000
+  threadDelay $ toUS (cfg^.startDelay)
 
   -- Acquire the key source and key sink
   snk <- using $ cfg^.keySinkDev
@@ -101,7 +101,7 @@ initAppEnv cfg = do
     e <- atomically . takeTMVar $ otv
     emitKey snk e
     -- If delay is specified, wait for it
-    for_ (cfg^.keyOutDelay) $ threadDelay . (*1000) . fromIntegral
+    for_ (cfg^.keyOutDelay) $ threadDelay . toUS
   -- emit e = view keySink >>= flip emitKey e
   pure $ AppEnv
     { _keAppCfg  = cfg

@@ -108,7 +108,7 @@ instance (HasAppEnv e, HasAppCfg e, HasLogFunc e) => MonadKIO (RIO e) where
   -- emit e = view keySink >>= flip emitKey e
 
   -- Pausing is a simple IO action
-  pause = threadDelay . (*1000) . fromIntegral
+  pause = threadDelay . toUS
 
   -- Holding and rerunning through the sluice and dispatch
   hold b = do
