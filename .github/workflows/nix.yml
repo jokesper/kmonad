@@ -25,7 +25,7 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Build flake
-        run: nix build --print-build-logs 'git+file:///${{ github.workspace }}?dir=nix&submodules=1'
+        run: nix build --print-build-logs 'git+file:///${{ github.workspace }}?dir=nix'
 
       - name: Check flake
-        run: nix flake check 'git+file:///${{ github.workspace }}?dir=nix&submodules=1'
+        run: nix flake check 'git+file:///${{ github.workspace }}?dir=nix'
