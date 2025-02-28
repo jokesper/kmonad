@@ -2,6 +2,7 @@
   description = "KMonad: An advanced keyboard manager.";
 
   inputs = {
+    self.submodules = true;
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
