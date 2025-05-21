@@ -3,9 +3,18 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+
+#ifdef __linux__
 #include <linux/input.h>
 #include <linux/uinput.h>
-#include <fcntl.h>
+#endif
+
+#ifdef __FreeBSD__
+#include <sys/ioctl.h>
+#include <dev/evdev/input.h>
+#include <dev/evdev/uinput.h>
+#endif
 
 // Perform an IOCTL grab or release on an open keyboard handle
 int ioctl_keyboard(int fd, int grab) {
@@ -75,4 +84,3 @@ void input_event_info() {
   printf("sizeof  event.value is:         %d\n", (int) sizeof(event.value));
   printf("alignof event.value is:         %d\n", (int) __alignof__(event.value));
 }
-
