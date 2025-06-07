@@ -36,8 +36,24 @@ foreign import ccall "release_kb"
 -- | Pass a pointer to a buffer to wait_key, when it returns the buffer can be
 -- read for the next key event.
 foreign import ccall "wait_key"
-  wait_key :: Ptr WinKeyEvent -> IO ()
+  c_wait_key :: Ptr WinKeyEvent -> IO Word32
 
+-- | A small wrapper around the C function 'c_wait_key'. Sometimes the read from
+-- the internal pipe in the C code gets interrupted. Probably due to events we
+-- want to ignore. Therefore we limit retries on empty reads. (See #1003)
+wait_key :: HasLogFunc e => Ptr WinKeyEvent -> RIO e ()
+wait_key = wait_key' 3
+ where
+  wait_key' :: HasLogFunc e => Int -> Ptr WinKeyEvent -> RIO e ()
+  wait_key' 0 _ = throwIO TooManyEmptyReads
+  wait_key' n buffer = do
+    read <- liftIO $ c_wait_key buffer
+    if
+      | read == 0 -> do
+        logDebug "Empty read from key-source."
+        wait_key' (n-1) buffer
+      | fromEnum read == sizeOf (undefined :: WinKeyEvent) -> pure ()
+      | otherwise -> throwIO $ UnexpetedNumberOfBytesRead read
 
 --------------------------------------------------------------------------------
 
@@ -78,7 +94,6 @@ llClose ll = do
 -- NOTE: This can throw an error if the event fails to convert.
 llRead :: HasLogFunc e => LLHook -> RIO e KeyEvent
 llRead ll = do
-  we <- liftIO $ do
-    wait_key $ ll^.buffer
-    peek $ ll^.buffer
+  wait_key $ ll^.buffer
+  we <- liftIO $ peek (ll^.buffer)
   either throwIO pure $ fromWinKeyEvent we

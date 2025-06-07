@@ -84,12 +84,12 @@ LRESULT CALLBACK keyHandler(int nCode, WPARAM wParam, LPARAM lParam)
 }
 
 // Read an event from the pipe and write it to the provided pointer
-void wait_key(struct KeyEvent* e)
+DWORD wait_key(struct KeyEvent* e)
 {
   DWORD dwRead;
   ReadFile(readPipe, e, sizeof(e), &dwRead, NULL);
   //printf("receiving: %d\n", e->keycode);
-  return;
+  return dwRead;
 }
 
 // Insert the keyboard hook and start the monitoring process

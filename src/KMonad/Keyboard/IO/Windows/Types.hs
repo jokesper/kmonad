@@ -40,12 +40,19 @@ import qualified Data.Foldable as NE (minimumBy, maximumBy)
 data WinError
   = NoWinKeycodeTo   Keycode    -- ^ Error translating to 'WinKeycode'
   | NoWinKeycodeFrom WinKeycode -- ^ Error translating from 'WinKeycode'
+  | UnexpetedNumberOfBytesRead Word32 -- ^ Bug in 'keyio_win.c'. We only write 'sizeof (undefined :: KeyEvent)'
+  | TooManyEmptyReads           -- ^ Too many events interrupted reading. See note in 'wait_key'.
 
 instance Exception WinError
 instance Show WinError where
   show e = case e of
     NoWinKeycodeTo   c -> "Cannot translate to windows keycode: "   <> show c
     NoWinKeycodeFrom i -> "Cannot translate from windows keycode: " <> show i
+    UnexpetedNumberOfBytesRead read ->
+      "Unexpeted bytes read from low-level hook. Read "
+      <> show read <> " bytes should be exactly "
+      <> show (sizeOf (undefined :: WinKeyEvent)) <> " bytes."
+    TooManyEmptyReads -> "Too many empty reads. If you get this error message internal assumptions are incorrect."
 
 --------------------------------------------------------------------------------
 -- $typ
