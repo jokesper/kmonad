@@ -45,7 +45,7 @@ wait_key :: HasLogFunc e => Ptr WinKeyEvent -> RIO e ()
 wait_key = wait_key' 3
  where
   wait_key' :: HasLogFunc e => Int -> Ptr WinKeyEvent -> RIO e ()
-  wait_key' 0 _ = throwIO TooManyEmptyReads
+  --wait_key' 0 _ = throwIO TooManyEmptyReads
   wait_key' n buffer = do
     read <- liftIO $ c_wait_key buffer
     if

@@ -87,8 +87,23 @@ LRESULT CALLBACK keyHandler(int nCode, WPARAM wParam, LPARAM lParam)
 DWORD wait_key(struct KeyEvent* e)
 {
   DWORD dwRead;
-  ReadFile(readPipe, e, sizeof(e), &dwRead, NULL);
+  bool ret = ReadFile(readPipe, e, sizeof(e), &dwRead, NULL);
   //printf("receiving: %d\n", e->keycode);
+  printf("[%s] %d bytes read:\n", ret ? " OK " : "FAIL", dwRead);
+  if (!ret) {
+    LPVOID lpMsgBuf;
+    DWORD dw = GetLastError();
+
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                  FORMAT_MESSAGE_FROM_SYSTEM |
+                  FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL,
+                  dw,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPTSTR) &lpMsgBuf,
+                  0, NULL);
+    printf("C: While reading key: %s", lpMsgBuf);
+  }
   return dwRead;
 }
 
