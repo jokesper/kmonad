@@ -25,6 +25,10 @@ import KMonad.Keyboard.IO.Windows.Types
 
 --------------------------------------------------------------------------------
 
+-- | Initialize the pipe in the c code. Should be part of 'grab_kb' but needs to run syncronously
+foreign import ccall "init_pipe"
+  c_init_pipe :: IO ()
+
 -- | Use the windows c-api to `grab` a keyboard
 foreign import ccall "grab_kb"
   grab_kb :: IO ()
@@ -75,6 +79,7 @@ llOpen :: HasLogFunc e => RIO e LLHook
 llOpen = do
   logInfo "Registering low-level Windows keyboard hook"
   liftIO $ do
+    c_init_pipe
     tid <- async grab_kb
     buf <- mallocBytes $ sizeOf (undefined :: WinKeyEvent)
     pure $ LLHook tid buf
