@@ -90,13 +90,6 @@ DWORD wait_key(struct KeyEvent* e, DWORD* dwRead)
   return ok ? 0 : GetLastError();
 }
 
-// Initialize the pipe used to communicate between the low-level-hook and the haskell API
-void init_pipe()
-{
-  // Create the pipe, error on failure
-  if ( !CreatePipe(&readPipe, &writePipe, NULL, 0) ) last_error();
-}
-
 // Insert the keyboard hook and start the monitoring process
 void grab_kb()
 {
@@ -104,11 +97,8 @@ void grab_kb()
   hookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, keyHandler, NULL, 0);
   if (hookHandle == NULL) last_error();
 
-  // This *never* triggers, but if not included the program doesn't run..?
-  MSG msg;
-  while (GetMessage(&msg, NULL, 0, 0))
-    { TranslateMessage(&msg);
-      DispatchMessage(&msg); }
+  // Create the pipe, error on failure
+  if ( !CreatePipe(&readPipe, &writePipe, NULL, 0) ) last_error();
 }
 
 // Uninstall the keyboard hook and kill the process
