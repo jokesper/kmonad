@@ -46,17 +46,6 @@ int release_uinput_keysink(int fd) {
   return ioctl(fd, UI_DEV_DESTROY);
 }
 
-// Send a keyboard event through a file-descriptor
-int send_event(int fd, int type, int code, int val, int s, int us) {
-  struct input_event ie;
-  ie.type = type;
-  ie.code = code;
-  ie.value = val;
-  ie.time.tv_sec = s;
-  ie.time.tv_usec = us;
-  return write(fd, &ie, sizeof(ie));
-}
-
 // Print information about memory layout of input_event
 void input_event_info() {
   struct input_event event;
@@ -75,4 +64,3 @@ void input_event_info() {
   printf("sizeof  event.value is:         %d\n", (int) sizeof(event.value));
   printf("alignof event.value is:         %d\n", (int) __alignof__(event.value));
 }
-

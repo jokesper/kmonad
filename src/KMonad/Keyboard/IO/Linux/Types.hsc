@@ -10,16 +10,15 @@ Portability : non-portable (MPTC with FD, FFI to Linux-only c-code)
 
 -}
 module KMonad.Keyboard.IO.Linux.Types
-  ( -- * The LinuxKeyEvent datatype, its constructors, and instances
+  ( -- * The LinuxInputEvent datatype, its constructors, and instances
     -- $types
-    LinuxKeyEvent(..)
-  , linuxKeyEvent
+    LinuxInputEvent(..)
   , sync
 
-    -- * Casting between 'KeyEvent' and 'LinuxKeyEvent'
+    -- * Casting between 'KeyEvent' and 'LinuxInputEvent'
     -- $linuxev
-  , toLinuxKeyEvent
-  , fromLinuxKeyEvent
+  , toLinuxInputEvent
+  , fromLinuxInputEvent
 
     -- * Reexport common modules
   , module KMonad.Keyboard
@@ -30,7 +29,8 @@ where
 import KMonad.Prelude
 
 import Data.Time.Clock.System
-import Foreign.C.Types (CInt)
+import Foreign.C.Types
+import Foreign.Storable
 import RIO.Partial (toEnum)
 
 import KMonad.Keyboard
@@ -41,8 +41,8 @@ import KMonad.Util
 --------------------------------------------------------------------------------
 -- $helper
 
-fi :: Integral a => a -> CInt
-fi = fromIntegral
+sysTime2CTime :: SystemTime -> CTimeVal
+sysTime2CTime (MkSystemTime s ns) = CTimeVal (fromIntegral s) (fromIntegral $ ns `div` 1000)
 
 --------------------------------------------------------------------------------
 -- $types
@@ -52,33 +52,48 @@ fi = fromIntegral
 -- seconds, microseconds, event-type, event-code, and event-value. For more
 -- explanation look at: https://www.kernel.org/doc/Documentation/input/input.txt
 
--- | The LinuxKeyEvent datatype
-newtype LinuxKeyEvent = LinuxKeyEvent (CInt, CInt, CInt, CInt, CInt)
+data CTimeVal = CTimeVal CTime CSUSeconds
   deriving Show
 
-instance Display LinuxKeyEvent where
-  textDisplay (LinuxKeyEvent (s, ns, typ, c, val)) = mconcat
-         [ tshow s, ".", tshow ns, ": "
-         , "type: ", tshow typ, ",  "
-         , "code: ", tshow c,   ",  "
-         , "val: ",  tshow val
-         ]
+-- | The LinuxInputEvent datatype ('struct input_event' from '<linux/input.h>')
+data LinuxInputEvent = LinuxInputEvent
+  { _time :: CTimeVal
+  , _eventType :: Word16
+  , _eventCode :: Word16
+  , _eventValue :: Int32
+  } deriving Show
 
--- | A smart constructor that casts from any integral
-linuxKeyEvent
-  :: (Integral a, Integral b, Integral c, Integral d, Integral e)
-  => (a, b, c, d, e) -- ^ The tuple representing the event
-  -> LinuxKeyEvent   -- ^ The LinuxKeyEvent
-linuxKeyEvent (a, b, c, d, e) = LinuxKeyEvent (f a, f b, f c, f d, f e)
-  where
-    f :: Integral a => a -> CInt
-    f = fromIntegral
+instance Storable CTimeVal where
+  #include <sys/time.h>
+  sizeOf _ = (#size struct timeval)
+  alignment _ = (#alignment struct timeval)
+  peek ptr = CTimeVal
+    <$> (#peek struct timeval, tv_sec) ptr
+    <*> (#peek struct timeval, tv_usec) ptr
+  poke ptr (CTimeVal s us) = do
+    (#poke struct timeval, tv_sec) ptr s
+    (#poke struct timeval, tv_usec) ptr us
+
+instance Storable LinuxInputEvent where
+  #include <linux/input.h>
+  sizeOf _ = (#size struct input_event)
+  alignment _ = (#alignment struct input_event)
+  peek ptr = LinuxInputEvent
+    <$> (#peek struct input_event, time) ptr
+    <*> (#peek struct input_event, type) ptr
+    <*> (#peek struct input_event, code) ptr
+    <*> (#peek struct input_event, value) ptr
+  poke ptr (LinuxInputEvent time ty code value) = do
+    (#poke struct input_event, time) ptr time
+    (#poke struct input_event, type) ptr ty
+    (#poke struct input_event, code) ptr code
+    (#poke struct input_event, value) ptr value
 
 -- | Constructor for linux sync events. Whenever you write an event to linux,
 -- you need to emit a 'sync' to signal to linux that it should sync all queued
 -- updates.
-sync :: SystemTime -> LinuxKeyEvent
-sync (MkSystemTime s ns) = LinuxKeyEvent (fi s, fi ns, 0, 0, 0)
+sync :: SystemTime -> LinuxInputEvent
+sync time = LinuxInputEvent (sysTime2CTime time) 0 0 0
 
 
 -------------------------------------------------------------------------------
@@ -92,7 +107,7 @@ sync (MkSystemTime s ns) = LinuxKeyEvent (fi s, fi ns, 0, 0, 0)
 -- Furthermore, within the category of KeyEvents, we only register presses and
 -- releases, and completely ignore repeat events.
 --
--- The correspondence between LinuxKeyEvents and core KeyEvents can best be read
+-- The correspondence between LinuxInputEvents and core KeyEvents can best be read
 -- in the above-mentioned documentation, but the quick version is this:
 --   Typ:  1 = KeyEvent            (see below)
 --         4 = @scancode@ event    (we neither read nor write)
@@ -103,9 +118,9 @@ sync (MkSystemTime s ns) = LinuxKeyEvent (fi s, fi ns, 0, 0, 0)
 --           see: https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
 --         for sync: always 0
 
--- | Translate a 'LinuxKeyEvent' to a KMonad 'KeyEvent'
-fromLinuxKeyEvent :: LinuxKeyEvent -> Maybe KeyEvent
-fromLinuxKeyEvent (LinuxKeyEvent (_, _, typ, c, val))
+-- | Translate a 'LinuxInputEvent' to a KMonad 'KeyEvent'
+fromLinuxInputEvent :: LinuxInputEvent -> Maybe KeyEvent
+fromLinuxInputEvent (LinuxInputEvent _ typ c val)
   | c >= 0x2ff = Nothing
   | typ == 1 && val == 0 = Just . mkRelease $ kc
   | typ == 1 && val == 1 = Just . mkPress   $ kc
@@ -113,11 +128,11 @@ fromLinuxKeyEvent (LinuxKeyEvent (_, _, typ, c, val))
   where
     kc = toEnum . fromIntegral $ c -- This is theoretically partial, but practically not
 
--- | Translate KMonad 'KeyEvent' along with a 'SystemTime' to 'LinuxKeyEvent's
+-- | Translate KMonad 'KeyEvent' along with a 'SystemTime' to 'LinuxInputEvent's
 -- for writing.
-toLinuxKeyEvent :: KeyEvent -> SystemTime -> LinuxKeyEvent
-toLinuxKeyEvent e (MkSystemTime s ns)
-  = LinuxKeyEvent (fi s, fi ns, 1, c, val)
+toLinuxInputEvent :: KeyEvent -> SystemTime -> LinuxInputEvent
+toLinuxInputEvent e time
+  = LinuxInputEvent (sysTime2CTime time) 1 c val
   where
-    c   = fi . fromEnum $ e^.keycode
+    c   = fromIntegral . fromEnum $ e^.keycode
     val = if e^.switch == Press then 1 else 0

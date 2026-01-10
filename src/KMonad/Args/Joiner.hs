@@ -290,7 +290,7 @@ getKeySeqDelay = do
 
 -- | The Linux correspondence between IToken and actual code
 pickInput :: IToken -> J (LogFunc -> IO (Acquire KeySource))
-pickInput (KDeviceSource f im) = pure $ runLF (deviceSource64 f im)
+pickInput (KDeviceSource f im) = pure $ runLF (deviceSource f im)
 pickInput KLowLevelHookSource = throwError $ InvalidOS "LowLevelHookSource"
 pickInput (KIOKitSource _)    = throwError $ InvalidOS "IOKitSource"
 

@@ -10,25 +10,20 @@ Stability   : experimental
 Portability : portable
 
 -}
-module KMonad.Keyboard.IO.Linux.DeviceSource
-  ( deviceSource
-  , deviceSource64
-
-  , KeyEventParser
-  , decode64
-  )
-where
+module KMonad.Keyboard.IO.Linux.DeviceSource (deviceSource) where
 
 import KMonad.Prelude
 import Foreign.C.Types
 import Foreign.C.Error
+import Foreign.Storable
+import Foreign.Marshal.Alloc
 import System.Posix
 import System.IO.Error
+import System.IO (hGetBuf)
 
 import KMonad.Keyboard.IO.Linux.Types
 import KMonad.Util
 
-import qualified Data.Serialize as B (decode)
 import qualified RIO.ByteString as B
 
 import System.INotify
@@ -76,39 +71,11 @@ ioctl_keyboard h pt g = liftIO $ do
 
 
 --------------------------------------------------------------------------------
--- $decoding
-
--- | A 'KeyEventParser' describes how to read and parse 'LinuxKeyEvent's from
--- the binary data-stream provided by the device-file.
-data KeyEventParser = KeyEventParser
-  { _nbytes :: !Int
-    -- ^ Size of 1 input event in bytes
-  , _prs    :: !(B.ByteString -> Either String LinuxKeyEvent)
-    -- ^ Function to convert bytestring to event
-  }
-makeClassy ''KeyEventParser
-
--- | Default configuration for parsing keyboard events
-defEventParser :: KeyEventParser
-defEventParser = KeyEventParser 24 decode64
-
--- | The KeyEventParser that works on my 64-bit Linux environment
-decode64 :: B.ByteString -> Either String LinuxKeyEvent
-decode64 bs = linuxKeyEvent . fliptup <$> result
-  where
-    result :: Either String (Int32, Word16, Word16, Word64, Word64)
-    result = B.decode . B.reverse $ bs
-
-    fliptup (a, b, c, d, e) = (e, d, c, b, a)
-
-
---------------------------------------------------------------------------------
 -- $types
 
 -- | Configurable components of a DeviceSource
 data DeviceSourceCfg = DeviceSourceCfg
   { _pth     :: !FilePath        -- ^ Path to the event-file
-  , _parser  :: !KeyEventParser  -- ^ The method used to decode events
   , _ignmis  :: !Bool            -- ^ Whether to wait for keyboard to (re-)appear
   }
 makeClassy ''DeviceSourceCfg
@@ -121,23 +88,13 @@ data DeviceFile = DeviceFile
 makeClassy ''DeviceFile
 
 instance HasDeviceSourceCfg DeviceFile where deviceSourceCfg = cfg
-instance HasKeyEventParser  DeviceFile where keyEventParser  = cfg.parser
 
 -- | Open a device file
 deviceSource :: HasLogFunc e
-  => KeyEventParser -- ^ The method by which to read and decode events
-  -> FilePath    -- ^ The filepath to the device file
+  => FilePath    -- ^ The filepath to the device file
   -> Bool           -- ^ Whether to wait for keyboard to (re-)appear
   -> RIO e (Acquire KeySource)
-deviceSource pr pt im = mkKeySource (lsOpen pr pt im) lsClose lsRead
-
--- | Open a device file on a standard linux 64 bit architecture
-deviceSource64 :: HasLogFunc e
-  => FilePath  -- ^ The filepath to the device file
-  -> Bool           -- ^ Whether to wait for keyboard to (re-)appear
-  -> RIO e (Acquire KeySource)
-deviceSource64 = deviceSource defEventParser
-
+deviceSource pt im = mkKeySource (lsOpen pt im) lsClose lsRead
 
 --------------------------------------------------------------------------------
 -- $io
@@ -214,11 +171,10 @@ lsOpen' pt im = do
 
 -- | Like `lsOpen'` but wrap it in a full 'DeviceFile'.
 lsOpen :: (HasLogFunc e)
-  => KeyEventParser   -- ^ The method by which to decode events
-  -> FilePath      -- ^ The path to the device file
+  => FilePath      -- ^ The path to the device file
   -> Bool             -- ^ Whether to wait for keyboard to (re-)appear
   -> RIO e DeviceFile
-lsOpen pr pt im = DeviceFile (DeviceSourceCfg pt pr im) <$> (newIORef =<< lsOpen' pt im)
+lsOpen pt im = DeviceFile (DeviceSourceCfg pt im) <$> (newIORef =<< lsOpen' pt im)
 
 -- | Release the ioctl grab and close the device file. This can throw an
 -- 'IOException' if the handle to the device cannot be properly closed, or an
@@ -235,15 +191,13 @@ lsClose src = do
 -- yield a parseable sequence of bytes.
 lsRead :: (HasLogFunc e) => DeviceFile -> RIO e KeyEvent
 lsRead src = do
-  bts <- lsRead' =<< readIORef (src^.dev)
-  case src^.prs $ bts of
-    Right p -> case fromLinuxKeyEvent p of
-      Just e  -> return e
-      Nothing -> lsRead src
-    Left s -> throwIO $ KeyIODecodeError s
+  event <- lsRead' =<< readIORef (src^.dev)
+  case fromLinuxInputEvent event of
+    Just e  -> return e
+    Nothing -> lsRead src
  where
   lsRead' (_, hdl) =
-    tryJust isENODEV (B.hGet hdl (src^.nbytes)) >>= \case
+    tryJust isENODEV (readInputEvent hdl) >>= \case
       Right bts -> pure bts
       Left e -> do
         devExists <- doesFileExist (src^.cfg.pth)
@@ -254,6 +208,12 @@ lsRead src = do
         writeIORef (src^.dev) h
         logInfo "Device reconnected"
         lsRead' h
+  readInputEvent hdl = liftIO $ alloca $ \ptr -> do
+    let toRead = sizeOf @LinuxInputEvent undefined
+    nRead <- hGetBuf hdl ptr toRead
+    if nRead /= toRead
+      then throwIO $ KeyIODecodeError "Device file returned to few bytes"
+      else peek ptr
   isENODEV e@IOError{ioe_errno = Just errno}
     | src^.ignmis && Errno errno == eNODEV = Just e
   isENODEV _ = Nothing

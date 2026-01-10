@@ -38,9 +38,10 @@ library
     -Wall
     -Wno-name-shadowing
     -Wno-unused-imports
+  build-tool-depends:
+    , hsc2hs:hsc2hs
   build-depends:
       base >= 4.12 && < 5
-    , cereal
     , hashable
     -- , hspec
     , lens
