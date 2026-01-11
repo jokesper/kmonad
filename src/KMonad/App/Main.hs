@@ -17,6 +17,7 @@ module KMonad.App.Main
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import KMonad.Args
 import KMonad.App.Types
@@ -54,12 +55,12 @@ main = getCmd >>= runCmd
 -- 2. Parse the config-file
 -- 3. Maybe start KMonad
 runCmd :: Cmd -> IO ()
-runCmd c = do
+runCmd c@Cmd{..} = do
   hSetBuffering stdout LineBuffering
-  o <- logOptionsHandle stdout False <&> setLogMinLevel (c^.logLvl)
+  o <- logOptionsHandle stdout False <&> setLogMinLevel logLvl
   withLogFunc o $ \f -> runRIO f $ do
     cfg <- loadConfig c
-    unless (c^.dryRun) $ startApp cfg
+    unless dryRun $ startApp cfg
 
 --------------------------------------------------------------------------------
 -- $init
@@ -78,7 +79,7 @@ initAppEnv cfg = do
   lgf <- view logFuncL
 
   -- Wait a bit for the user to release the 'Return' key with which they started KMonad
-  threadDelay $ fromIntegral (cfg^.startDelay) * 1000
+  threadDelay $ fromIntegral (cfg ^. startDelay) * 1000
 
   -- Acquire the key source and key sink
   snk <- using $ cfg^.keySinkDev
@@ -165,7 +166,7 @@ pressKey c =
 -- 2. If that event is a 'Press' we use our keymap to trigger an action.
 loop :: RIO AppEnv ()
 loop = forever $ view sluice >>= Sl.pull >>= \case
-  e | e^.switch == Press -> pressKey $ e^.keycode
+  e | switch e == Press -> pressKey $ keycode e
   _                      -> pure ()
 
 -- | Run KMonad using the provided configuration

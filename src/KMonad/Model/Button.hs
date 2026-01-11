@@ -16,8 +16,7 @@ implemented (like TapHold).
 module KMonad.Model.Button
   ( -- * Button basics
     -- $but
-    Button
-  , HasButton(..)
+    Button(..)
   , onPress
   , onRelease
   , onTap
@@ -84,11 +83,10 @@ import qualified RIO.HashSet as S
 -- by other button such as `tap-macro`.
 -- Use 'mkButton' instead of this constructor.
 data Button = Button
-  { _pressAction   :: !Action -- ^ Action to take when pressed
-  , _releaseAction :: !Action -- ^ Action to take when released
-  , _tapAction     :: !Action -- ^ Action to take when tapped as a sub button
+  { pressAction   :: !Action -- ^ Action to take when pressed
+  , releaseAction :: !Action -- ^ Action to take when released
+  , tapAction     :: !Action -- ^ Action to take when tapped as a sub button
   }
-makeClassy ''Button
 
 -- | Create a 'Button' out of a press and release action
 --
@@ -118,7 +116,7 @@ onTap = mkButton' (pure ()) (pure ())
 
 -- | Like 'onPress' but with an alternative button to use for tapping
 onPress' :: Button -> AnyK () -> Button
-onPress' (Button{_tapAction = Action t}) p = mkButton' p (pure ()) t
+onPress' (Button{tapAction = Action t}) p = mkButton' p (pure ()) t
 
 --------------------------------------------------------------------------------
 -- $running
@@ -127,17 +125,17 @@ onPress' (Button{_tapAction = Action t}) p = mkButton' p (pure ()) t
 
 -- | Perform both the press and release of a button immediately
 tap :: MonadK m => Button -> m ()
-tap b = runAction $ b^.tapAction
+tap b = runAction $ tapAction b
 
 -- | Perform the press action of a Button and register its release callback.
 --
 -- This performs the action stored in the 'pressAction' field and registers a
 -- callback that will trigger the 'releaseAction' when the release is detected.
 press :: MonadK m => Button -> m ()
-press b = do
-  runAction $ b^.pressAction
+press Button{..} = do
+  runAction pressAction
   awaitMy Release $ do
-    runAction $ b^.releaseAction
+    runAction releaseAction
     pure Catch
 
 --------------------------------------------------------------------------------
@@ -210,11 +208,11 @@ around ::
   -> Button -- ^ The inner 'Button'
   -> Button -- ^ The resulting nested 'Button'
 around outer inner = mkButton'
-  (runAction (outer^.pressAction)   *> runAction (inner^.pressAction))
-  (runAction (inner^.releaseAction) *> runAction (outer^.releaseAction))
-  $ runAction (outer^.pressAction)
-  *> runAction (inner^.tapAction)
-  *> runAction (outer^.releaseAction)
+  (runAction (pressAction outer)   *> runAction (pressAction inner))
+  (runAction (releaseAction inner) *> runAction (releaseAction outer))
+  $ runAction (pressAction outer)
+  *> runAction (tapAction inner)
+  *> runAction (releaseAction outer)
 
 -- | A variant of `around`, which releases its outer button when another key
 -- is pressed.
@@ -223,22 +221,22 @@ aroundOnly ::
   -> Button -- ^ The inner 'Button'
   -> Button -- ^ The resulting nested 'Button'
 aroundOnly outer inner = onPress' (around outer inner) $ do
-  runAction $ outer^.pressAction
-  runAction $ inner^.pressAction
+  runAction $ pressAction outer
+  runAction $ pressAction inner
   go =<< matchMy Release
  where
   go :: MonadK m => KeyPred -> m ()
   go isMyRelease = hookF InputHook $ \e ->
     if
       | isMyRelease e -> do
-        runAction $ inner^.releaseAction
-        runAction $ outer^.releaseAction
+        runAction $ releaseAction inner
+        runAction $ releaseAction outer
         pure Catch
       -- Another key is pressed, so release the modifier immediately.
       | isPress e -> do
-        runAction $ outer^.releaseAction
+        runAction $ releaseAction outer
         await isMyRelease $ \_ -> do
-          runAction (inner^.releaseAction)
+          runAction $ releaseAction inner
           pure Catch
         pure NoCatch
       | otherwise ->
@@ -251,27 +249,27 @@ aroundWhenAlone ::
   -> Button -- ^ The inner 'Button'
   -> Button -- ^ The resulting nested 'Button'
 aroundWhenAlone outer inner = onPress' (around outer inner) $ do
-  runAction $ outer^.pressAction
-  runAction $ inner^.pressAction
+  runAction $ pressAction outer
+  runAction $ pressAction inner
   go S.empty =<< matchMy Release
  where
   go :: MonadK m => HashSet Keycode -> KeyPred -> m ()
   go pressed isMyRelease = hookF InputHook $ \e ->
     if
       | isMyRelease e -> do
-        runAction $ inner^.releaseAction
-        when (null pressed) $ runAction $ outer^.releaseAction
+        runAction $ releaseAction inner
+        when (null pressed) $ runAction $ releaseAction outer
         pure Catch
       | isPress e -> do
-        let pressed' = S.insert (e^.keycode) pressed
-        when (null pressed) $ runAction $ outer^.releaseAction
+        let pressed' = S.insert (keycode e) pressed
+        when (null pressed) $ runAction $ releaseAction outer
         go pressed' isMyRelease
         pure NoCatch
       | otherwise -> do -- some release
-        let pressed' = S.delete (e^.keycode) pressed
-        let shouldPressOuter = S.member (e^.keycode) pressed && null pressed'
+        let pressed' = S.delete (keycode e) pressed
+        let shouldPressOuter = S.member (keycode e) pressed && null pressed'
         inject e
-        when shouldPressOuter . after 3 $ runAction $ outer^.pressAction
+        when shouldPressOuter . after 3 $ runAction $ pressAction outer
         await isRelease $ \_ -> go pressed' isMyRelease $> NoCatch
         pure Catch
 
@@ -283,9 +281,9 @@ aroundNext ::
      Button -- ^ The outer 'Button'
   -> Button -- ^ The resulting 'Button'
 aroundNext b = onPress $ await isPress $ \e -> do
-  runAction $ b^.pressAction
-  await (isReleaseOf $ e^.keycode) $ \_ -> do
-    runAction $ b^.releaseAction
+  runAction $ pressAction b
+  await (isReleaseOf $ keycode e) $ \_ -> do
+    runAction $ releaseAction b
     pure NoCatch
   pure NoCatch
 
@@ -298,9 +296,9 @@ aroundNextTimeout ::
   -> Button       -- ^ The 'Button' to tap on timeout
   -> Button       -- ^ The resulting button
 aroundNextTimeout d b t = onPress $ within d (pure isPress) (tap t) $ \trig -> do
-  runAction $ b^.pressAction
-  await (isReleaseOf $ trig^.event.keycode) $ \_ -> do
-    runAction $ b^.releaseAction
+  runAction $ pressAction b
+  await (isReleaseOf $ keycode $ event trig) $ \_ -> do
+    runAction $ releaseAction b
     pure NoCatch
   pure NoCatch
 
@@ -316,10 +314,10 @@ aroundNextSingle ::
      Button -- ^ The outer 'Button'
   -> Button -- ^ The resulting 'Button'
 aroundNextSingle b = onPress $ await isPress $ \_ -> do
-  runAction $ b^.pressAction
+  runAction $ pressAction b
   -- Wait for the next *event*, regardless of what it is
   await (pure True) $ \_ -> do
-    runAction $ b^.releaseAction
+    runAction $ releaseAction b
     pure NoCatch
   pure NoCatch
 
@@ -354,7 +352,7 @@ tapNext t h = onPress' t $ hookF InputHook $ \e -> do
 tapHoldNext :: Milliseconds -> Button -> Button -> Maybe Button -> Button
 tapHoldNext ms t h mtb = onPress $ within ms (pure $ const True) onTimeout $ \tr -> do
   p <- matchMy Release
-  if p $ tr^.event
+  if p $ event tr
     then tap t   $> Catch
     else press h $> NoCatch
   where
@@ -366,7 +364,7 @@ beforeAfterNext :: Button -> Button -> Button
 beforeAfterNext b a = onPress $ do
   tap b
   await isPress $ \e -> do
-    await (isReleaseOf $ e^.keycode) $ \_ -> do
+    await (isReleaseOf $ keycode e) $ \_ -> do
       tap a
       pure NoCatch
     pure NoCatch
@@ -394,9 +392,9 @@ tapNextRelease t h = onPress' t $ do
         | p e -> doTap
         -- If the next event is the release of some button that was held after me
         -- we act as if we were held
-        | isRel && (e^.keycode `elem` ks) -> doHold e
+        | isRel && (keycode e `elem` ks) -> doHold e
         -- Else, if it is a press, store the keycode and wait again
-        | not isRel                       -> go ((e^.keycode):ks) $> NoCatch
+        | not isRel                       -> go (keycode e : ks) $> NoCatch
         -- Else, if it is a release of some button held before me, just ignore
         | otherwise                       -> go ks $> NoCatch
 
@@ -432,17 +430,17 @@ tapHoldNextRelease ms t h mtb = onPress' t $ do
     go :: MonadK m => Milliseconds -> [Keycode] ->  m ()
     go ms' ks = tHookF InputHook ms' onTimeout $ \r -> do
       p <- matchMy Release
-      let e = r^.event
+      let e = event r
       let isRel = isRelease e
       if
         -- If the next event is my own release: act like tapped
         | p e -> onRelSelf
         -- If the next event is another release that was pressed after me
-        | isRel && (e^.keycode `elem` ks) -> onRelOther e
+        | isRel && (keycode e `elem` ks) -> onRelOther e
         -- If the next event is a press, store and recurse
-        | not isRel -> go (ms' - r^.elapsed) (e^.keycode : ks) $> NoCatch
+        | not isRel -> go (ms' - elapsed r) (keycode e : ks) $> NoCatch
         -- If the next event is a release of some button pressed before me, recurse
-        | otherwise -> go (ms' - r^.elapsed) ks $> NoCatch
+        | otherwise -> go (ms' - elapsed r) ks $> NoCatch
 
     onTimeout :: MonadK m =>  m ()
     onTimeout = press (fromMaybe h mtb) *> hold False
@@ -490,14 +488,14 @@ tapHoldNextPress ms t h mtb = onPress' t $ do
     go :: MonadK m => Milliseconds -> m ()
     go ms' = tHookF InputHook ms' onTimeout $ \r -> do
       p <- matchMy Release
-      let e = r^.event
+      let e = event r
       if
         -- If the next event is my own release: we act as if we were tapped
         | p e -> doTap
         -- If the next event is a press: we act as if we were held
         | isPress e -> doHold e
         -- Else, if it is a release of some other button, just ignore
-        | otherwise -> go (ms' - r^.elapsed) $> NoCatch
+        | otherwise -> go (ms' - elapsed r) $> NoCatch
 
     onTimeout :: MonadK m =>  m ()
     onTimeout = press (fromMaybe h mtb) *> hold False
@@ -548,9 +546,9 @@ multiTap l bs = onPress' tap' $ hold True *> go bs
       -- 3D. If we detect a release event, we also cancel the multi-tap sequence.
       let doNext pred onTimeout next cancel ms = tHookF InputHook ms onTimeout $ \t -> do
             pr <- pred
-            if | pr (t^.event)      -> next (ms - t^.elapsed) $> Catch
-               | isPress (t^.event) -> onTimeout              $> NoCatch
-               | otherwise          -> cancel (ms - t^.elapsed) $> NoCatch
+            if | pr (event t)      -> next (ms - elapsed t) $> Catch
+               | isPress (event t) -> onTimeout              $> NoCatch
+               | otherwise          -> cancel (ms - elapsed t) $> NoCatch
       let cancel = tap b *> hold False
       let doHold = press b *> hold False
       let whileReleased = doNext (matchMy Press) cancel (\_ -> go bs') (const cancel)
@@ -617,9 +615,9 @@ stickyKey ms b = mkButton' go (pure ()) doTap
     within ms
            (pure isPress)  -- presses definitely happen after us
            (pure ())
-           (\t -> runAction (b^.pressAction)
-               *> inject (t^.event)
-               *> after 3 (runAction $ b^.releaseAction)
+           (\t -> runAction (pressAction b)
+               *> inject (event t)
+               *> after 3 (runAction $ releaseAction b)
                $> Catch)
 
 -- | Create a button that functions as a different button everything it is pushed

@@ -2,9 +2,8 @@
 module KMonad.Keyboard.Types
   (
     Switch(..)
-  , KeyEvent
+  , KeyEvent(..)
   , mkKeyEvent
-  , HasKeyEvent(..)
   , KeyPred
   , LayerTag
   , LMap
@@ -32,10 +31,9 @@ data Switch
 
 -- | An 'KeyEvent' is a 'Switch' on a particular 'Keycode'
 data KeyEvent = KeyEvent
-  { _switch  :: Switch  -- ^ Whether the 'KeyEvent' was a 'Press' or 'Release'
-  , _keycode :: Keycode -- ^ The 'Keycode' mapped to this 'KeyEvent'
-  } deriving (Eq, Show, Generic, Hashable)
-makeClassy ''KeyEvent
+  { switch  :: Switch  -- ^ Whether the 'KeyEvent' was a 'Press' or 'Release'
+  , keycode :: Keycode -- ^ The 'Keycode' mapped to this 'KeyEvent'
+  } deriving (Eq, Ord, Show, Generic, Hashable)
 
 -- | Create a new 'KeyEvent' from a 'Switch' and a 'Keycode'
 mkKeyEvent :: Switch -> Keycode -> KeyEvent
@@ -43,15 +41,7 @@ mkKeyEvent = KeyEvent
 
 -- | A 'Display' instance for 'KeyEvent's that prints them out nicely.
 instance Display KeyEvent where
-  textDisplay a = tshow (a^.switch) <> " " <> textDisplay (a^.keycode)
-
--- | An 'Ord' instance, where Press > Release, and otherwise we 'Ord' on the
--- 'Keycode'
-instance Ord KeyEvent where
-  a `compare` b = case (a^.switch) `compare` (b^.switch) of
-    EQ -> (a^.keycode) `compare` (b^.keycode)
-    x  -> x
-
+  textDisplay KeyEvent{..} = tshow switch <> " " <> textDisplay keycode
 
 -- | Predicate on KeyEvent's
 type KeyPred = KeyEvent -> Bool

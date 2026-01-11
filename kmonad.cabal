@@ -71,6 +71,7 @@ library
       NoImplicitPrelude
       OverloadedStrings
       RankNTypes
+      RecordWildCards
       TemplateHaskell
       TupleSections
       TypeApplications

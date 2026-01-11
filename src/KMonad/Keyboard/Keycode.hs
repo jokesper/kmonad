@@ -23,6 +23,7 @@ module KMonad.Keyboard.Keycode
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import qualified KMonad.Util.MultiMap     as Q
 import qualified RIO.HashSet       as S

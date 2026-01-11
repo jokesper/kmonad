@@ -16,7 +16,6 @@ bound to, to provide the 'myBinding' functionality from 'MonadK'.
 
 module KMonad.Model.BEnv
   ( BEnv(..)
-  , HasBEnv(..)
   , initBEnv
   , runBEnv
   )
@@ -39,13 +38,10 @@ import KMonad.Keyboard
 -- | The configuration of a 'Button' with some additional state to keep track of
 -- the last 'Switch'
 data BEnv = BEnv
-  { _beButton   :: !Button        -- ^ The configuration for this button
-  , _binding    :: !Keycode       -- ^ The 'Keycode' to which this button is bound
-  , _lastSwitch :: !(MVar Switch) -- ^ State to keep track of last manipulation
+  { beButton   :: !Button        -- ^ The configuration for this button
+  , binding    :: !Keycode       -- ^ The 'Keycode' to which this button is bound
+  , lastSwitch :: !(MVar Switch) -- ^ State to keep track of last manipulation
   }
-makeClassy ''BEnv
-
-instance HasButton BEnv where button = beButton
 
 -- | Initialize a 'BEnv', note that a key is always initialized in an unpressed
 -- state.
@@ -56,8 +52,8 @@ initBEnv b c = BEnv b c <$> newMVar Release
 -- different from the 'lastSwitch' field. I.e. pressing a pressed button or
 -- releasing a released button does nothing.
 runBEnv :: MonadUnliftIO m => BEnv -> Switch -> m (Maybe Action)
-runBEnv b a =
-  modifyMVar (b^.lastSwitch) $ \l -> pure $ case (a, l) of
-    (Press, Release) -> (Press,   Just $ b^.pressAction)
-    (Release, Press) -> (Release, Just $ b^.releaseAction)
+runBEnv BEnv{..} a =
+  modifyMVar lastSwitch $ \l -> pure $ case (a, l) of
+    (Press, Release) -> (Press,   Just $ pressAction beButton)
+    (Release, Press) -> (Release, Just $ releaseAction beButton)
     _                -> (a,       Nothing)

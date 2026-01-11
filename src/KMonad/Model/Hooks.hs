@@ -53,23 +53,19 @@ import qualified RIO.HashMap as M
 -- $env
 
 data Entry = Entry
-  { _time  :: SystemTime
-  , _eHook :: Hook IO
+  { time  :: SystemTime
+  , eHook :: Hook IO
   }
-makeLenses ''Entry
-
-instance HasHook Entry IO where hook = eHook
 
 type Store = M.HashMap Unique Entry
 
 -- | The 'Hooks' environment that is required for keeping track of all the
 -- different targets and callbacks.
 data Hooks = Hooks
-  { _eventSrc   :: IO KeyEvent   -- ^ Where we get our events from
-  , _injectTmr  :: TMVar Unique  -- ^ Used to signal timeouts
-  , _hooks      :: TVar Store    -- ^ Store of hooks
+  { eventSrc   :: IO KeyEvent   -- ^ Where we get our events from
+  , injectTmr  :: TMVar Unique  -- ^ Used to signal timeouts
+  , hooks      :: TVar Store    -- ^ Store of hooks
   }
-makeLenses ''Hooks
 
 -- | Create a new 'Hooks' environment which reads events from the provided action
 mkHooks' :: MonadUnliftIO m => m KeyEvent -> m Hooks
@@ -86,10 +82,8 @@ mkHooks = lift . mkHooks'
 ioHook :: MonadUnliftIO m => Hook m -> m (Hook IO)
 ioHook h = withRunInIO $ \u -> do
 
-  t <- case _hTimeout h of
-    Nothing -> pure Nothing
-    Just t' -> pure . Just $ Timeout (t'^.delay) (u (_action t'))
-  let f e = u $ _keyH h e
+  let t = hTimeout h <&> \t -> t { action = u (action t) }
+  let f e = u $ keyH h e
   pure $ Hook t f
 
 
@@ -104,37 +98,37 @@ register :: (HasLogFunc e)
   => Hooks
   -> Hook (RIO e)
   -> RIO e ()
-register hs h = do
+register Hooks{..} h = do
   -- Insert an entry into the store
   tag <- liftIO newUnique
   e   <- Entry <$> liftIO getSystemTime <*> ioHook h
-  atomically $ modifyTVar (hs^.hooks) (M.insert tag e)
+  atomically $ modifyTVar hooks (M.insert tag e)
   -- If the hook has a timeout, start a thread that will signal timeout
-  case h^.hTimeout of
+  case hTimeout h of
     Nothing -> logDebug $ "Registering untimed hook: " <> display (hashUnique tag)
     Just t' -> void . async $ do
-      logDebug $ "Registering " <> display (t'^.delay)
+      logDebug $ "Registering " <> display (delay t')
               <> "ms hook: " <> display (hashUnique tag)
-      threadDelay $ 1000 * fromIntegral (t'^.delay)
-      atomically $ putTMVar (hs^.injectTmr) tag
+      threadDelay $ 1000 * fromIntegral (delay t')
+      atomically $ putTMVar injectTmr tag
 
 -- | Cancel a hook by removing it from the store
 cancelHook :: (HasLogFunc e)
   => Hooks
   -> Unique
   -> RIO e ()
-cancelHook hs tag = do
+cancelHook Hooks{..} tag = do
   e <- atomically $ do
-    m <- readTVar $ hs^.hooks
+    m <- readTVar hooks
     let v = M.lookup tag m
-    when (isJust v) $ modifyTVar (hs^.hooks) (M.delete tag)
+    when (isJust v) $ modifyTVar hooks (M.delete tag)
     pure v
   case e of
     Nothing ->
       logDebug $ "Tried cancelling expired hook: " <> display (hashUnique tag)
-    Just e' -> do
+    Just Entry{ eHook } -> do
       logDebug $ "Cancelling hook: " <> display (hashUnique tag)
-      liftIO $ e' ^. hTimeout . to fromJust . action
+      liftIO $ action . fromJust $ hTimeout eHook
 
 
 --------------------------------------------------------------------------------
@@ -146,16 +140,16 @@ cancelHook hs tag = do
 -- | Run the function stored in a Hook on the event and the elapsed time
 runEntry :: MonadIO m => SystemTime -> KeyEvent -> Entry -> m Catch
 runEntry t e v = liftIO $ do
-  (v^.keyH) $ Trigger ((v^.time) `tDiff` t) e
+  keyH (eHook v) $ Trigger (time v `tDiff` t) e
 
 -- | Run all hooks on the current event and reset the store
 runHooks :: (HasLogFunc e)
   => Hooks
   -> KeyEvent
   -> RIO e (Maybe KeyEvent)
-runHooks hs e = do
+runHooks Hooks{..} e = do
   logDebug "Running hooks"
-  m   <- atomically $ swapTVar (hs^.hooks) M.empty
+  m   <- atomically $ swapTVar hooks M.empty
   now <- liftIO getSystemTime
   foldMapM (runEntry now e) (M.elems m) >>= \case
     Catch   -> pure Nothing
@@ -177,13 +171,13 @@ runHooks hs e = do
 step :: (HasLogFunc e)
   => Hooks                  -- ^ The 'Hooks' environment
   -> RIO e (Maybe KeyEvent) -- ^ An action that returns perhaps the next event
-step h = do
+step h@Hooks{..} = do
 
   -- Asynchronously start reading the next event
-  a <- async . liftIO $ h^.eventSrc
+  a <- async $ liftIO eventSrc
 
   -- Handle any timer event first, and then try to read from the source
-  let next = (Left <$> takeTMVar (h^.injectTmr)) `orElse` (Right <$> waitSTM a)
+  let next = (Left <$> takeTMVar injectTmr) `orElse` (Right <$> waitSTM a)
 
   -- Keep taking and cancelling timers until we encounter a key event, then run
   -- the hooks on that event.

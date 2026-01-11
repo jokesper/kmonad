@@ -11,7 +11,6 @@ Portability : non-portable (MPTC with FD, FFI to Linux-only c-code)
 -}
 module KMonad.Args.Cmd
   ( Cmd(..)
-  , HasCmd(..)
   , getCmd
   )
 where
@@ -36,23 +35,22 @@ import Options.Applicative
 
 -- | Record describing the instruction to KMonad
 data Cmd = Cmd
-  { _cfgFile   :: FilePath     -- ^ Which file to read the config from
-  , _dryRun    :: Bool         -- ^ Flag to indicate we are only test-parsing
-  , _logLvl    :: LogLevel     -- ^ Level of logging to use
-  , _strtDel   :: Milliseconds -- ^ How long to wait before acquiring the input keyboard
+  { cfgFile   :: FilePath     -- ^ Which file to read the config from
+  , dryRun    :: Bool         -- ^ Flag to indicate we are only test-parsing
+  , logLvl    :: LogLevel     -- ^ Level of logging to use
+  , strtDel   :: Milliseconds -- ^ How long to wait before acquiring the input keyboard
 
     -- All 'KDefCfg' options of a 'KExpr'
-  , _cmdAllow  :: DefSetting       -- ^ Allow execution of arbitrary shell-commands?
-  , _fallThrgh :: DefSetting       -- ^ Re-emit unhandled events?
-  , _cmpSeq    :: Maybe DefSetting -- ^ Key to use for compose-key sequences
-  , _cmpSeqDelay :: Maybe DefSetting -- ^ Specify compose sequence key delays
-  , _keySeqDelay :: Maybe DefSetting -- ^ Specify key event output delays
-  , _implArnd  :: Maybe DefSetting -- ^ How to handle implicit `around`s
-  , _oToken    :: Maybe DefSetting -- ^ How to emit the output
-  , _iToken    :: Maybe DefSetting -- ^ How to capture the input
+  , cmdAllow  :: DefSetting       -- ^ Allow execution of arbitrary shell-commands?
+  , fallThrgh :: DefSetting       -- ^ Re-emit unhandled events?
+  , cmpSeq    :: Maybe DefSetting -- ^ Key to use for compose-key sequences
+  , cmpSeqDelay :: Maybe DefSetting -- ^ Specify compose sequence key delays
+  , keySeqDelay :: Maybe DefSetting -- ^ Specify key event output delays
+  , implArnd  :: Maybe DefSetting -- ^ How to handle implicit `around`s
+  , oToken    :: Maybe DefSetting -- ^ How to emit the output
+  , iToken    :: Maybe DefSetting -- ^ How to capture the input
   }
   deriving Show
-makeClassy ''Cmd
 
 -- | Parse 'Cmd' from the evocation of this program
 getCmd :: IO Cmd

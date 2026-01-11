@@ -40,6 +40,7 @@ module KMonad.Args.Types
 
 
 import KMonad.Prelude
+import Control.Lens
 
 import KMonad.Model.Button
 import KMonad.Keyboard
@@ -119,15 +120,14 @@ data ImplArnd
 -- | The 'CfgToken' contains all the data needed to construct an
 -- 'KMonad.App.AppCfg'.
 data CfgToken = CfgToken
-  { _src   :: LogFunc -> IO (Acquire KeySource) -- ^ How to grab the source keyboard
-  , _snk   :: LogFunc -> IO (Acquire KeySink)   -- ^ How to construct the out keybboard
-  , _km    :: LMap Button                       -- ^ An 'LMap' of 'Button' actions
-  , _fstL  :: LayerTag                          -- ^ Name of initial layer
-  , _flt   :: Bool                              -- ^ How to deal with unhandled events
-  , _allow :: Bool                              -- ^ Whether to allow shell commands
-  , _ksd   :: Maybe Int                         -- ^ Output delay between keys
+  { src   :: LogFunc -> IO (Acquire KeySource) -- ^ How to grab the source keyboard
+  , snk   :: LogFunc -> IO (Acquire KeySink)   -- ^ How to construct the out keybboard
+  , km    :: LMap Button                       -- ^ An 'LMap' of 'Button' actions
+  , fstL  :: LayerTag                          -- ^ Name of initial layer
+  , flt   :: Bool                              -- ^ How to deal with unhandled events
+  , allow :: Bool                              -- ^ Whether to allow shell commands
+  , ksd   :: Maybe Int                         -- ^ Output delay between keys
   }
-makeClassy ''CfgToken
 
 
 --------------------------------------------------------------------------------

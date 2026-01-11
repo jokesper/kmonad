@@ -23,6 +23,7 @@ where
 
 
 import KMonad.Prelude
+import Control.Lens
 
 import KMonad.Model.Action hiding (layerOp)
 import KMonad.Model.Button

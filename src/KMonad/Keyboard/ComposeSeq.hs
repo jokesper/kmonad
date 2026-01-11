@@ -31,10 +31,11 @@ import RIO.Text.Partial (replace)
 -- 3. A descriptive-name
 --
 ssComposed :: [(Text, Char, Text)]
-ssComposed = composeSeqs & (each . _1) %~ sanitize
+ssComposed = sanitize <$> composeSeqs
  where
-  sanitize :: Text -> Text
-  sanitize = replace "(" "\\("
+  sanitize (macro, char, name) = (sanitize' macro, char, name)
+  sanitize' :: Text -> Text
+  sanitize' = replace "(" "\\("
            . replace ")" "\\)"
            . replace "_" "\\_"
 

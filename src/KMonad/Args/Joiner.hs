@@ -24,8 +24,9 @@ module KMonad.Args.Joiner
   )
 where
 
-import KMonad.Prelude hiding (uncons)
+import KMonad.Prelude
 import KMonad.Util
+import Control.Lens hiding (uncons)
 
 import KMonad.Args.Types
 
@@ -197,13 +198,13 @@ joinConfig' = do
   (km, fl) <- joinKeymap srcs als lys
 
   pure $ CfgToken
-    { _snk   = o
-    , _src   = i
-    , _km    = km
-    , _fstL  = fl
-    , _flt   = ft
-    , _allow = al
-    , _ksd   = ksd
+    { snk   = o
+    , src   = i
+    , km    = km
+    , fstL  = fl
+    , flt   = ft
+    , allow = al
+    , ksd   = ksd
     }
 
 --------------------------------------------------------------------------------
@@ -297,8 +298,8 @@ pickInput (KIOKitSource _)    = throwError $ InvalidOS "IOKitSource"
 -- | The Linux correspondence between OToken and actual code
 pickOutput :: OToken -> J (LogFunc -> IO (Acquire KeySink))
 pickOutput (KUinputSink t init) = pure $ runLF (uinputSink cfg)
-  where cfg = defUinputCfg { _keyboardName = T.unpack t
-                           , _postInit     = T.unpack <$> init }
+  where cfg = defUinputCfg { keyboardName = T.unpack t
+                           , postInit     = T.unpack <$> init }
 pickOutput (KSendEventSink _)   = throwError $ InvalidOS "SendEventSink"
 pickOutput KKextSink            = throwError $ InvalidOS "KextSink"
 

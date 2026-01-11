@@ -13,11 +13,6 @@ Portability : portable
 module KMonad.Keyboard.IO.Linux.UinputSink
   ( UinputSink
   , UinputCfg(..)
-  , keyboardName
-  , vendorCode
-  , productCode
-  , productVersion
-  , postInit
   , uinputSink
   , defUinputCfg
   )
@@ -64,38 +59,34 @@ instance Show UinputSinkError where
     ]
   show EmptyNameError = "Provided empty name for Uinput keyboard"
 
-makeClassyPrisms ''UinputSinkError
-
 
 --------------------------------------------------------------------------------
 -- $cfg
 
 -- | Configuration of the Uinput keyboard to instantiate
 data UinputCfg = UinputCfg
-  { _vendorCode     :: !CInt
-  , _productCode    :: !CInt
-  , _productVersion :: !CInt
-  , _keyboardName   :: !String
-  , _postInit       :: !(Maybe String)
+  { vendorCode     :: !CInt
+  , productCode    :: !CInt
+  , productVersion :: !CInt
+  , keyboardName   :: !String
+  , postInit       :: !(Maybe String)
   } deriving (Eq, Show)
-makeClassy ''UinputCfg
 
 -- | Default Uinput configuration
 defUinputCfg :: UinputCfg
 defUinputCfg = UinputCfg
-  { _vendorCode     = 0x1235
-  , _productCode    = 0x5679
-  , _productVersion = 0x0000
-  , _keyboardName   = "KMonad simulated keyboard"
-  , _postInit       = Nothing
+  { vendorCode     = 0x1235
+  , productCode    = 0x5679
+  , productVersion = 0x0000
+  , keyboardName   = "KMonad simulated keyboard"
+  , postInit       = Nothing
   }
 
 -- | UinputSink is an MVar to a filehandle
 data UinputSink = UinputSink
-  { _cfg     :: UinputCfg
-  , _st      :: MVar Fd
+  { cfg     :: UinputCfg
+  , st      :: MVar Fd
   }
-makeLenses ''UinputSink
 
 -- | Return a new uinput 'KeySink' with extra options
 uinputSink :: HasLogFunc e => UinputCfg -> RIO e (Acquire KeySink)
@@ -118,10 +109,10 @@ foreign import ccall "release_uinput_keysink"
 
 -- | Create and acquire a Uinput device
 acquire_uinput_keysink :: MonadIO m => Fd -> UinputCfg -> m Int
-acquire_uinput_keysink (Fd h) c = liftIO $ do
-  cstr <- newCString $ c^.keyboardName
+acquire_uinput_keysink (Fd h) UinputCfg{..} = liftIO $ do
+  cstr <- newCString keyboardName
   c_acquire_uinput_keysink h cstr
-    (c^.vendorCode) (c^.productCode) (c^.productVersion)
+    vendorCode productCode productVersion
 
 -- | Release a Uinput device
 release_uinput_keysink :: MonadIO m => Fd -> m Int
@@ -136,15 +127,15 @@ send_event :: ()
 send_event u fd e = liftIO $ alloca $ \ptr -> do
   poke ptr e
   (fromIntegral <$> fdWriteBuf fd (castPtr ptr) (fromIntegral $ sizeOf e))
-    `onErr` SinkEncodeError (u^.cfg.keyboardName) e
+    `onErr` SinkEncodeError (keyboardName $ cfg u) e
 
 
 --------------------------------------------------------------------------------
 
 -- | Create a new UinputSink
 usOpen :: HasLogFunc e => UinputCfg -> RIO e UinputSink
-usOpen c = do
-  when (null $ c ^. keyboardName) $ throwM EmptyNameError
+usOpen c@UinputCfg{..} = do
+  when (null keyboardName) $ throwM EmptyNameError
   fd <- liftIO $ openFd "/dev/uinput"
     WriteOnly
 #if !MIN_VERSION_unix(2,8,0)
@@ -152,20 +143,20 @@ usOpen c = do
 #endif
     defaultFileFlags
   logInfo "Registering Uinput device"
-  acquire_uinput_keysink fd c `onErr` UinputRegistrationError (c ^. keyboardName)
-  flip (maybe $ pure ()) (c^.postInit) $ \cmd -> do
+  acquire_uinput_keysink fd c `onErr` UinputRegistrationError keyboardName
+  flip (maybe $ pure ()) postInit $ \cmd -> do
     logInfo $ "Running UinputSink command: " <> displayShow cmd
     void . async . spawnCommand $ cmd
   UinputSink c <$> newMVar fd
 
 -- | Close a 'UinputSink'
 usClose :: HasLogFunc e => UinputSink -> RIO e ()
-usClose snk = withMVar (snk^.st) $ \h -> finally (release h) (close h)
+usClose snk = withMVar (st snk) $ \h -> finally (release h) (close h)
   where
     release h = do
       logInfo "Unregistering Uinput device"
       release_uinput_keysink h
-        `onErr` UinputReleaseError (snk^.cfg.keyboardName)
+        `onErr` UinputReleaseError (keyboardName $ cfg snk)
 
     close h = do
       logInfo "Closing Uinput device file"
@@ -174,7 +165,7 @@ usClose snk = withMVar (snk^.st) $ \h -> finally (release h) (close h)
 -- | Write a keyboard event to the sink and sync the driver state. Using an MVar
 -- ensures that we can never have 2 threads try to write at the same time.
 usWrite :: HasLogFunc e => UinputSink -> KeyEvent -> RIO e ()
-usWrite u e = withMVar (u^.st) $ \fd -> do
+usWrite u e = withMVar (st u) $ \fd -> do
   now <- liftIO getSystemTime
   send_event u fd . toLinuxInputEvent e $ now
   send_event u fd . sync              $ now

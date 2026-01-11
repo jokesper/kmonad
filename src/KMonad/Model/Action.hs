@@ -26,11 +26,6 @@ module KMonad.Model.Action
   , HookLocation(..)
   , Hook(..)
 
-    -- * Lenses
-  , HasHook(..)
-  , HasTimeout(..)
-  , HasTrigger(..)
-
     -- * Layer operations
     -- $lop
   , LayerOp(..)
@@ -79,10 +74,9 @@ instance Monoid Catch where
 -- | The packet used to trigger a KeyFun, containing info about the event and
 -- how long since the Hook was registered.
 data Trigger = Trigger
-  { _elapsed :: Milliseconds -- ^ Time elapsed since hook was registered
-  , _event   :: KeyEvent     -- ^ The key event triggering this call
+  { elapsed :: Milliseconds -- ^ Time elapsed since hook was registered
+  , event   :: KeyEvent     -- ^ The key event triggering this call
   }
-makeClassy ''Trigger
 
 
 --------------------------------------------------------------------------------
@@ -99,17 +93,15 @@ data HookLocation
 
 -- | A 'Timeout' value describes how long to wait and what to do upon timeout
 data Timeout m = Timeout
-  { _delay  :: Milliseconds -- ^ Delay before timeout action is triggered
-  , _action :: m ()         -- ^ Action to perform upon timeout
+  { delay  :: Milliseconds -- ^ Delay before timeout action is triggered
+  , action :: m ()         -- ^ Action to perform upon timeout
   }
-makeClassy ''Timeout
 
 -- | The content for 1 key hook
 data Hook m = Hook
-  { _hTimeout :: Maybe (Timeout m)  -- ^ Optional timeout machinery
-  , _keyH     :: Trigger -> m Catch -- ^ The function to call on the next 'KeyEvent'
+  { hTimeout :: Maybe (Timeout m)  -- ^ Optional timeout machinery
+  , keyH     :: Trigger -> m Catch -- ^ The function to call on the next 'KeyEvent'
   }
-makeClassy ''Hook
 
 
 --------------------------------------------------------------------------------
@@ -169,7 +161,7 @@ my s = mkKeyEvent s <$> myBinding
 
 -- | Register a simple hook without a timeout
 hookF :: MonadKIO m => HookLocation -> (KeyEvent -> m Catch) -> m ()
-hookF l f = register l . Hook Nothing $ \t -> f (t^.event)
+hookF l f = register l . Hook Nothing $ f . event
 
 -- | Register a hook with a timeout
 tHookF :: MonadK m
@@ -189,7 +181,7 @@ after :: MonadK m
   -> m ()
   -> m ()
 after d a = do
-  let rehook t = after (d - t^.elapsed) a $> NoCatch
+  let rehook t = after (d - elapsed t) a $> NoCatch
   tHookF InputHook d a rehook
 
 -- | Perform an action immediately after the current action is finished. NOTE:
@@ -226,9 +218,9 @@ within :: MonadK m
 within d p a f = do
   p' <- p
   -- define f' to run action on predicate match, or rehook on predicate mismatch
-  let f' t = if p' (t^.event)
+  let f' t = if p' (event t)
         then f t
-        else within (d - t^.elapsed) p a f $> NoCatch
+        else within (d - elapsed t) p a f $> NoCatch
   tHookF InputHook d a f'
 
 -- | Like `within`, but acquires a hold when starting, and releases when done

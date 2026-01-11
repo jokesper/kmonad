@@ -34,11 +34,10 @@ import KMonad.Keyboard
 -- never be interrupted, therefore we can simply use 'IORef' and sidestep all
 -- the STM complications.
 data Sluice = Sluice
-  { _eventSrc :: IO KeyEvent      -- ^ Where we get our 'KeyEvent's from
-  , _blocked  :: IORef Int        -- ^ How many locks have been applied to the sluice
-  , _blockBuf :: IORef [KeyEvent] -- ^ Internal buffer to store events while closed
+  { eventSrc :: IO KeyEvent      -- ^ Where we get our 'KeyEvent's from
+  , blocked  :: IORef Int        -- ^ How many locks have been applied to the sluice
+  , blockBuf :: IORef [KeyEvent] -- ^ Internal buffer to store events while closed
   }
-makeLenses ''Sluice
 
 -- | Create a new 'Sluice' environment
 mkSluice' :: MonadUnliftIO m => m KeyEvent -> m Sluice
@@ -60,9 +59,9 @@ mkSluice = lift . mkSluice'
 
 -- | Increase the block-count by 1
 block :: HasLogFunc e => Sluice -> RIO e ()
-block s = do
-  modifyIORef (s^.blocked) (+1)
-  readIORef (s^.blocked) >>= \n ->
+block Sluice{..} = do
+  modifyIORef blocked (+1)
+  readIORef blocked >>= \n ->
     logDebug $ "Block level set to: " <> display n
 
 -- | Set the Sluice to unblocked mode, return a list of all the stored events
@@ -76,12 +75,12 @@ block s = do
 -- 'KMonad.Model.Dispatch.Dispatch's rerun buffer. (this happens in the
 -- "KMonad.App" module.)
 unblock :: HasLogFunc e => Sluice -> RIO e [KeyEvent]
-unblock s = do
-  modifyIORef' (s^.blocked) (\n -> n - 1)
-  readIORef (s^.blocked) >>= \case
+unblock Sluice{..} = do
+  modifyIORef' blocked (\n -> n - 1)
+  readIORef blocked >>= \case
     0 -> do
-      es <- readIORef (s^.blockBuf)
-      writeIORef (s^.blockBuf) []
+      es <- readIORef blockBuf
+      writeIORef blockBuf []
       logDebug $ "Unblocking input stream, " <>
         if null es
         then "no stored events"
@@ -103,13 +102,13 @@ unblock s = do
 -- | Try to read from the Sluice, if we are blocked, store the event internally
 -- and return Nothing. If we are unblocked, return Just the KeyEvent.
 step :: HasLogFunc e => Sluice -> RIO e (Maybe KeyEvent)
-step s = do
-  e <- liftIO $ s^.eventSrc
-  readIORef (s^.blocked) >>= \case
+step Sluice{..} = do
+  e <- liftIO $ eventSrc
+  readIORef blocked >>= \case
     0 -> pure $ Just e
     _ -> do
-      modifyIORef' (s^.blockBuf) (e:)
-      readIORef (s^.blockBuf) >>= \es -> do
+      modifyIORef' blockBuf (e:)
+      readIORef blockBuf >>= \es -> do
         let xs = map ((" - " <>) . textDisplay) es
         logDebug . display . unlines $ "Storing event, current store: ":xs
       pure Nothing

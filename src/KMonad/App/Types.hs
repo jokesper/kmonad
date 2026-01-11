@@ -10,6 +10,7 @@ module KMonad.App.Types
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import UnliftIO.Process (CreateProcess(close_fds), createProcess_, shell)
 
@@ -94,13 +95,12 @@ makeClassy ''KEnv
 
 instance HasAppCfg  KEnv where appCfg       = kAppEnv.appCfg
 instance HasAppEnv  KEnv where appEnv       = kAppEnv
-instance HasBEnv    KEnv where bEnv         = kBEnv
 instance HasLogFunc KEnv where logFuncL     = kAppEnv.logFuncL
 
 -- | Hook up all the components to the different 'MonadK' functionalities
 instance MonadK (RIO KEnv) where
   -- Binding is found in the stored 'BEnv'
-  myBinding = view (bEnv.binding)
+  myBinding = asks (binding . _kBEnv)
 
 instance (HasAppEnv e, HasAppCfg e, HasLogFunc e) => MonadKIO (RIO e) where
   -- Emitting with the keysink

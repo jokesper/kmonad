@@ -134,5 +134,5 @@ toLinuxInputEvent :: KeyEvent -> SystemTime -> LinuxInputEvent
 toLinuxInputEvent e time
   = LinuxInputEvent (sysTime2CTime time) 1 c val
   where
-    c   = fromIntegral . fromEnum $ e^.keycode
-    val = if e^.switch == Press then 1 else 0
+    c   = fromIntegral . fromEnum $ keycode e
+    val = if switch e == Press then 1 else 0

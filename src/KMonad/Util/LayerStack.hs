@@ -51,6 +51,7 @@ module KMonad.Util.LayerStack
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import RIO.List (delete)
 

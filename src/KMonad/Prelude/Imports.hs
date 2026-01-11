@@ -4,7 +4,6 @@ module KMonad.Prelude.Imports
   ( module X )
 where
 
-import Control.Lens       as X
 import Control.Monad.Cont as X
 import Data.Acquire       as X
 import GHC.Conc           as X (orElse)

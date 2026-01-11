@@ -23,6 +23,7 @@ module KMonad.Keyboard.IO.Windows.Types
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import Foreign.Storable
 import KMonad.Keyboard
@@ -116,9 +117,9 @@ toWinKeycode = flip M.lookup keyCodeToWinCode
 -- error-handling in until we are sure this is covered well. Once it lines up
 -- perfectly, this is essentially an Iso.
 toWinKeyEvent :: KeyEvent -> Either WinError WinKeyEvent
-toWinKeyEvent e = case toWinKeycode $ e^.keycode of
-  Just c  -> Right $ WinKeyEvent (e^.switch.from _WinSwitch, c)
-  Nothing -> Left . NoWinKeycodeTo $ e^.keycode
+toWinKeyEvent e = case toWinKeycode $ keycode e of
+  Just c  -> Right $ WinKeyEvent (switch e^.from _WinSwitch, c)
+  Nothing -> Left . NoWinKeycodeTo $ keycode e
 
 -- | Convert a 'WinKeyEvent' to a 'KeyEvent'
 --

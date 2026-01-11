@@ -56,11 +56,10 @@ import qualified RIO.Text as T
 
 -- | The 'Dispatch' environment
 data Dispatch = Dispatch
-  { _eventSrc :: IO KeyEvent            -- ^ How to read 1 event
-  , _readProc :: TMVar (Async KeyEvent) -- ^ Store for reading process
-  , _rerunBuf :: TVar (Seq KeyEvent)    -- ^ Buffer for rerunning events
+  { eventSrc :: IO KeyEvent            -- ^ How to read 1 event
+  , readProc :: TMVar (Async KeyEvent) -- ^ Store for reading process
+  , rerunBuf :: TVar (Seq KeyEvent)    -- ^ Buffer for rerunning events
   }
-makeLenses ''Dispatch
 
 -- | Create a new 'Dispatch' environment
 mkDispatch' :: MonadUnliftIO m => m KeyEvent -> m Dispatch
@@ -83,11 +82,11 @@ mkDispatch = lift . mkDispatch'
 -- 2. A new item read from the OS
 -- 3. Pausing until either 1. or 2. triggers
 pull :: (HasLogFunc e) => Dispatch -> RIO e KeyEvent
-pull d = do
+pull Dispatch{..} = do
   -- Check for an unfinished read attempt started previously. If it exists,
   -- fetch it, otherwise, start a new read attempt.
-  a <- atomically (tryTakeTMVar $ d^.readProc) >>= \case
-    Nothing -> async . liftIO $ d^.eventSrc
+  a <- atomically (tryTakeTMVar readProc) >>= \case
+    Nothing -> async $ liftIO eventSrc
     Just a' -> pure a'
 
   -- First try reading from the rerunBuf, or failing that, from the
@@ -97,18 +96,18 @@ pull d = do
     Left e' -> do
       logDebug $ "\n" <> display (T.replicate 80 "-")
               <> "\nRerunning event: " <> display e'
-      atomically $ putTMVar (d^.readProc) a
+      atomically $ putTMVar readProc a
       pure e'
     Right e' -> pure e'
 
   where
     -- Pop the head off the rerun-buffer (or 'retrySTM' if empty)
-    popRerun = readTVar (d^.rerunBuf) >>= \case
+    popRerun = readTVar rerunBuf >>= \case
       Seq.Empty -> retrySTM
       (e :<| b) -> do
-        writeTVar (d^.rerunBuf) b
+        writeTVar rerunBuf b
         pure e
 
 -- | Add a list of elements to be rerun.
 rerun :: (HasLogFunc e) => Dispatch -> [KeyEvent] -> RIO e ()
-rerun d es = atomically $ modifyTVar (d^.rerunBuf) (>< Seq.fromList es)
+rerun Dispatch{..} es = atomically $ modifyTVar rerunBuf (>< Seq.fromList es)

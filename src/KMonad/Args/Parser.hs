@@ -40,6 +40,7 @@ module KMonad.Args.Parser
 where
 
 import KMonad.Prelude hiding (try, bool)
+import Control.Lens ((^..))
 
 import KMonad.Parsing
 import KMonad.Args.Types
@@ -243,7 +244,7 @@ composeSeqP = do
     c <- anySingle <?> "special character"
     case find (\(_, c', _) -> c' == c) ssComposed of
       Nothing -> fail "Unrecognized compose-char"
-      Just b  -> pure $ b^._1
+      Just (macro, _, _)  -> pure macro
 
   -- If matching, parse a button-sequence from the stored text
   case runParser (some buttonP <* eof) "" s of

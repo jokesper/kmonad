@@ -13,6 +13,8 @@ Portability : portable
 module KMonad.Keyboard.IO.Linux.DeviceSource (deviceSource) where
 
 import KMonad.Prelude
+import Control.Lens (view)
+
 import Foreign.C.Types
 import Foreign.C.Error
 import Foreign.Storable
@@ -50,8 +52,6 @@ instance Show DeviceSourceError where
   show (RootDirDoesNotExist dev) = "Root directory for device '" <> dev <> "' does not exist"
   show (KeyIODecodeError msg)  = "KeyEvent decode failed with msg: "    <> msg
 
-makeClassyPrisms ''DeviceSourceError
-
 --------------------------------------------------------------------------------
 -- $ffi
 foreign import ccall "ioctl_keyboard"
@@ -75,19 +75,15 @@ ioctl_keyboard h pt g = liftIO $ do
 
 -- | Configurable components of a DeviceSource
 data DeviceSourceCfg = DeviceSourceCfg
-  { _pth     :: !FilePath        -- ^ Path to the event-file
-  , _ignmis  :: !Bool            -- ^ Whether to wait for keyboard to (re-)appear
+  { pth     :: !FilePath        -- ^ Path to the event-file
+  , ignmis  :: !Bool            -- ^ Whether to wait for keyboard to (re-)appear
   }
-makeClassy ''DeviceSourceCfg
 
 -- | Collection of data used to read from linux input.h event stream
 data DeviceFile = DeviceFile
-  { _cfg :: !DeviceSourceCfg -- ^ Configuration settings
-  , _dev :: !(IORef (Fd, Handle)) -- ^ Posix and Haskell filedescriptor to the device file
+  { cfg :: !DeviceSourceCfg -- ^ Configuration settings
+  , dev :: !(IORef (Fd, Handle)) -- ^ Posix and Haskell filedescriptor to the device file
   }
-makeClassy ''DeviceFile
-
-instance HasDeviceSourceCfg DeviceFile where deviceSourceCfg = cfg
 
 -- | Open a device file
 deviceSource :: HasLogFunc e
@@ -181,9 +177,9 @@ lsOpen pt im = DeviceFile (DeviceSourceCfg pt im) <$> (newIORef =<< lsOpen' pt i
 -- 'IOCtlReleaseError' if the ioctl release could not be properly performed.
 lsClose :: (HasLogFunc e) => DeviceFile -> RIO e ()
 lsClose src = do
-  (fd, hdl) <- readIORef (src^.dev)
+  (fd, hdl) <- readIORef $ dev src
   logInfo "Releasing ioctl grab"
-  ioctl_keyboard fd (src^.cfg.pth) False `catch` (throwIO . IOCtlReleaseError)
+  ioctl_keyboard fd (pth $ cfg src) False `catch` (throwIO . IOCtlReleaseError)
   hClose hdl
 
 -- | Read a bytestring from an open filehandle and return a parsed event. This
@@ -191,21 +187,22 @@ lsClose src = do
 -- yield a parseable sequence of bytes.
 lsRead :: (HasLogFunc e) => DeviceFile -> RIO e KeyEvent
 lsRead src = do
-  event <- lsRead' =<< readIORef (src^.dev)
+  event <- lsRead' =<< readIORef (dev src)
   case fromLinuxInputEvent event of
     Just e  -> return e
     Nothing -> lsRead src
  where
+  DeviceSourceCfg{..} = cfg src
   lsRead' (_, hdl) =
     tryJust isENODEV (readInputEvent hdl) >>= \case
       Right bts -> pure bts
       Left e -> do
-        devExists <- doesFileExist (src^.cfg.pth)
+        devExists <- doesFileExist pth
         hClose hdl
         when devExists $ logRethrow "Device still exists, but reading failed" (toException e)
         logInfo "Device disconnected"
-        h <- lsOpen' (src^.cfg.pth) (src^.ignmis)
-        writeIORef (src^.dev) h
+        h <- lsOpen' pth ignmis
+        writeIORef (dev src) h
         logInfo "Device reconnected"
         lsRead' h
   readInputEvent hdl = liftIO $ alloca $ \ptr -> do
@@ -215,5 +212,5 @@ lsRead src = do
       then throwIO $ KeyIODecodeError "Device file returned to few bytes"
       else peek ptr
   isENODEV e@IOError{ioe_errno = Just errno}
-    | src^.ignmis && Errno errno == eNODEV = Just e
+    | ignmis && Errno errno == eNODEV = Just e
   isENODEV _ = Nothing

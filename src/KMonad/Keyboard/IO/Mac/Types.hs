@@ -9,6 +9,7 @@ module KMonad.Keyboard.IO.Mac.Types
 where
 
 import KMonad.Prelude
+import Control.Lens
 
 import Foreign.Storable
 import KMonad.Keyboard
@@ -95,9 +96,9 @@ toMacKeycode = flip M.lookup revMap
 -- error-handling in until we are sure this is covered well. Once it lines up
 -- perfectly, this is essentially an Iso.
 toMacKeyEvent :: KeyEvent -> Either MacError MacKeyEvent
-toMacKeyEvent e = case toMacKeycode $ e^.keycode of
-  Just c  -> Right $ MacKeyEvent (toMacSwitch (e^.switch), c)
-  Nothing -> Left . NoMacKeycodeTo $ e^.keycode
+toMacKeyEvent e = case toMacKeycode $ keycode e of
+  Just c  -> Right $ MacKeyEvent (toMacSwitch $ switch e, c)
+  Nothing -> Left . NoMacKeycodeTo $ keycode e
 
 -- | Convert a 'MacKeyEvent' to a 'KeyEvent'
 --

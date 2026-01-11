@@ -30,6 +30,7 @@ module KMonad.Util.MultiMap
 where
 
 import KMonad.Prelude hiding (reverse)
+import Control.Lens
 
 import qualified RIO.HashMap as M
 import qualified RIO.HashSet as S

@@ -11,6 +11,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Data.Char
 
+import Control.Lens
 import RIO.Seq (Seq(..))
 
 import qualified RIO.List as L
