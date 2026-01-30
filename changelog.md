@@ -6,19 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 
 ## Unreleased
 
+### Breaking
+
+- Update Karabiner-DriverKit to 6.8.0 (#937, #1025)
+  You will now need to [start the server yourself](doc/installation.md#starting-the-dext-daemon).
+- With systemd v258 udevd ignores `GROUP=` setting with a non-system group.
+  If you followed the [FAQ entry: How do I get Uinput permissions?](doc/faq.md#q-how-do-i-get-uinput-permissions)
+  and created the `uinput` group delete the group (`sudo groupdel uinput`)
+  and create a new group with the user added to it (see FAQ entry).
+
 ### Added
 
 - `XX` may be used in `defsrc` as a placeholder button.
   Buttons binded to it will never trigger. (#992)
 - Added `:grace` to `tap-next-release` and `tap-hold-next-release`,
   which could improve your shifting experience. (#916)
+- Using `:ignore-missing` in `device-file` you can wait for the device to be
+  connected before starting and allow reconnecting in case of disconnect. (#1017)
+- Windows OEM Specific keycodes without name are now ignored. (#1043)
+- Added Windows only key `VKOEM8`. (#1043)
 
 ### Changed
-
-- Update Karabiner-DriverKit to 5.0.0 (#937)
-  You will now need to [start the server yourself](doc/installation.md#starting-the-dext-daemon).
 - Aliases can now refer to later aliases instead of just earlier ones. (#992)
 - Aliases can now be used in `defsrc` if they are a keycode (#992)
+- Failure to grab or release the keyboard are now accompanied with the os error on Linux (#1017)
 
 ### Fixed
 
@@ -26,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 - Fixed the `c_src/mac/list-keyboards.c` on Apple SDK < 12.0 (#987)
 - Fixed random crash on startup on windows. (#1005)
 - Fixed problems with tap-next-release and similar (see #256) (#524, #914)
+- Fixed nested `implicit-around`s in `tap-macro`s are inconsistent. (#1012)
+- Fixed `sticky-key` as tap in `tap-hold` style buttons. (#1014)
 
 ## 0.4.4 – 2025-04-11
 

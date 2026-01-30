@@ -214,9 +214,12 @@ around ::
      Button -- ^ The outer 'Button'
   -> Button -- ^ The inner 'Button'
   -> Button -- ^ The resulting nested 'Button'
-around outer inner = mkButton
+around outer inner = mkButton'
   (runAction (outer^.pressAction)   *> runAction (inner^.pressAction))
   (runAction (inner^.releaseAction) *> runAction (outer^.releaseAction))
+  $ runAction (outer^.pressAction)
+  *> runAction (inner^.tapAction)
+  *> runAction (outer^.releaseAction)
 
 -- | A variant of `around`, which releases its outer button when another key
 -- is pressed.
@@ -588,7 +591,7 @@ layerNext t = onPress $ do
 -- pressed for the button after it if that button was pressed in the
 -- given timeframe.
 stickyKey :: Milliseconds -> Button -> Button
-stickyKey ms b = onPress go
+stickyKey ms b = mkButton' go (pure ()) doTap
  where
   go :: MonadK m => m ()
   go = hookF InputHook $ \e -> do

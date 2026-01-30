@@ -106,7 +106,7 @@ instance Show JoinError where
     DuplicateLayerSetting t s -> "Duplicate setting in 'deflayer '"  <> T.unpack t <> "': " <> T.unpack s
     InvalidOS         t   -> "Not available under this OS: "         <> T.unpack t
     ImplArndDisabled      -> "Implicit around via `A` or `S-a` are disabled in your config"
-    NestedTrans           -> "Encountered 'Transparent' ouside of top-level layer"
+    NestedTrans           -> "Encountered 'Transparent' outside of top-level layer"
     InvalidComposeKey     -> "Encountered invalid button as Compose key"
     LengthMismatch t l s  -> mconcat
       [ "Mismatch between length of 'defsrc' and deflayer <", T.unpack t, ">\n"
@@ -290,7 +290,7 @@ getKeySeqDelay = do
 
 -- | The Linux correspondence between IToken and actual code
 pickInput :: IToken -> J (LogFunc -> IO (Acquire KeySource))
-pickInput (KDeviceSource f)   = pure $ runLF (deviceSource64 f)
+pickInput (KDeviceSource f im) = pure $ runLF (deviceSource64 f im)
 pickInput KLowLevelHookSource = throwError $ InvalidOS "LowLevelHookSource"
 pickInput (KIOKitSource _)    = throwError $ InvalidOS "IOKitSource"
 
@@ -309,7 +309,7 @@ pickOutput KKextSink            = throwError $ InvalidOS "KextSink"
 -- | The Windows correspondence between IToken and actual code
 pickInput :: IToken -> J (LogFunc -> IO (Acquire KeySource))
 pickInput KLowLevelHookSource = pure $ runLF llHook
-pickInput (KDeviceSource _)   = throwError $ InvalidOS "DeviceSource"
+pickInput (KDeviceSource _ _) = throwError $ InvalidOS "DeviceSource"
 pickInput (KIOKitSource _)    = throwError $ InvalidOS "IOKitSource"
 
 -- | The Windows correspondence between OToken and actual code
@@ -325,7 +325,7 @@ pickOutput KKextSink           = throwError $ InvalidOS "KextSink"
 -- | The Mac correspondence between IToken and actual code
 pickInput :: IToken -> J (LogFunc -> IO (Acquire KeySource))
 pickInput (KIOKitSource name) = pure $ runLF (iokitSource (T.unpack <$> name))
-pickInput (KDeviceSource _)   = throwError $ InvalidOS "DeviceSource"
+pickInput (KDeviceSource _ _) = throwError $ InvalidOS "DeviceSource"
 pickInput KLowLevelHookSource = throwError $ InvalidOS "LowLevelHookSource"
 
 -- | The Mac correspondence between OToken and actual code

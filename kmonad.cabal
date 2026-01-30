@@ -41,6 +41,7 @@ library
   build-depends:
       base >= 4.12 && < 5
     , cereal
+    , hashable
     -- , hspec
     , lens
     , megaparsec
@@ -122,7 +123,8 @@ library
     c-sources:
       c_src/keyio.c
     build-depends:
-      unix
+      , unix
+      , hinotify
 
   if os(windows)
     exposed-modules:
@@ -151,7 +153,7 @@ library
         -std=c++2a
       include-dirs:
         c_src/mac/Karabiner-DriverKit-VirtualHIDDevice/include/pqrs/karabiner/driverkit
-        c_src/mac/Karabiner-DriverKit-VirtualHIDDevice/src/Daemon/vendor/include
+        c_src/mac/Karabiner-DriverKit-VirtualHIDDevice/vendor/vendor/include
     extra-libraries:
       c++
     build-depends:
