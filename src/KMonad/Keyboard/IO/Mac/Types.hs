@@ -690,4 +690,5 @@ kcMapRaw =
   , ((0xFF01,0x1), KeySpotlight)
   , ((0xFF01,0x4), KeyLaunchpad)
   , ((0xFF01,0x10), KeyMissionCtrl)
+  , ((0x1,0x9B),   KeyDoNotDisturb)
   ]
