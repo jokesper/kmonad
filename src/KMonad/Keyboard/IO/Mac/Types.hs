@@ -127,7 +127,8 @@ kcMap = M.fromList kcMapRaw
 
 kcMapRaw :: [(MacKeycode, Keycode)]
 kcMapRaw =
-  [ ((0x7,0x4), KeyA)
+  [ ((0x1,0x9B), KeyDoNotDisturb)
+  , ((0x7,0x4), KeyA)
   , ((0x7,0x5), KeyB)
   , ((0x7,0x6), KeyC)
   , ((0x7,0x7), KeyD)
@@ -690,5 +691,4 @@ kcMapRaw =
   , ((0xFF01,0x1), KeySpotlight)
   , ((0xFF01,0x4), KeyLaunchpad)
   , ((0xFF01,0x10), KeyMissionCtrl)
-  , ((0x1,0x9B),   KeyDoNotDisturb)
   ]
