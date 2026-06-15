@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 ### Added
 
 - Added macOS HID mapping for Do Not Disturb key on Apple Silicon Mac keyboards (MacBook Pro 14"/16" 2021+, MacBook Air M2+, Magic Keyboard with Touch ID)
+- Added `dnd` alias for the do not disturb key
 
 ### Changed
 
