@@ -13,6 +13,7 @@ static pqrs::karabiner_virtual_hid_device::hid_report::keyboard_input keyboard;
 static pqrs::karabiner_virtual_hid_device::hid_report::apple_vendor_top_case_input top_case;
 static pqrs::karabiner_virtual_hid_device::hid_report::apple_vendor_keyboard_input apple_keyboard;
 static pqrs::karabiner_virtual_hid_device::hid_report::consumer_input consumer;
+static pqrs::karabiner_virtual_hid_device::hid_report::consumer_input generic_desktop;
 
 int exit_sink() {
     int retval = 0;
@@ -112,6 +113,8 @@ extern "C" int send_key(struct KeyEvent *e) {
         return send_key(apple_keyboard, e);
     else if(usage_page == pqrs::karabiner_virtual_hid_device::usage_page::consumer)
         return send_key(consumer, e);
+    else if(usage_page == pqrs::karabiner_virtual_hid_device::usage_page::generic_desktop)
+        return send_key(generic_desktop, e);
     else
         return 1;
 }

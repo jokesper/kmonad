@@ -930,6 +930,7 @@ aliases = Q.mkMultiMap
   , (KeyPreviousSong,     ["prev"])
   , (KeyMicmute,          ["micm"])
   , (KeyCoffee,           ["lock"])
+  , (KeyDoNotDisturb,     ["dnd"])
   -- Darwin
   , (KeyLaunchpad,        ["lp"])
   , (KeyMissionCtrl,      ["mctl"])

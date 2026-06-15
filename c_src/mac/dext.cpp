@@ -15,6 +15,7 @@ static pqrs::karabiner::driverkit::virtual_hid_device_driver::hid_report::keyboa
 static pqrs::karabiner::driverkit::virtual_hid_device_driver::hid_report::apple_vendor_top_case_input top_case;
 static pqrs::karabiner::driverkit::virtual_hid_device_driver::hid_report::apple_vendor_keyboard_input apple_keyboard;
 static pqrs::karabiner::driverkit::virtual_hid_device_driver::hid_report::consumer_input consumer;
+static pqrs::karabiner::driverkit::virtual_hid_device_driver::hid_report::generic_desktop_input generic_desktop;
 
 int init_sink() {
     pqrs::dispatcher::extra::initialize_shared_dispatcher();
@@ -92,6 +93,8 @@ extern "C" int send_key(struct KeyEvent *e) {
         return send_key(apple_keyboard, e);
     else if(usage_page == pqrs::hid::usage_page::consumer)
         return send_key(consumer, e);
+    else if(usage_page == pqrs::hid::usage_page::generic_desktop)
+        return send_key(generic_desktop, e);
     else
         return 1;
 }
