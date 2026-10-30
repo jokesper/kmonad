@@ -16,7 +16,7 @@ jobs:
     steps:
 
       - name: Clone project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build release
         run: docker build -f ci/Dockerfile.${{ matrix.target }} . -t kmonad-builder
@@ -27,7 +27,7 @@ jobs:
           docker run --rm -v ${PWD}/output:/host/ kmonad-builder bash -c 'cp -vp /output/* /host/'
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kmonad-${{ matrix.target }}
           path: 'output/*'
